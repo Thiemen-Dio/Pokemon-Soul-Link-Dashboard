@@ -10,6 +10,7 @@ import {
   updateRun,
 } from '../api/soullink.js'
 import { gameLabel } from '../api/games.js'
+import DeathDialog from '../components/DeathDialog.jsx'
 import TypeLink from '../components/TypeLink.jsx'
 import {
   PLAYERS,
@@ -124,7 +125,7 @@ const ENCOUNTER_FILTERS = {
   dead: { label: 'Dead', statuses: ['dead'] },
 }
 
-function Run({ run, encounters, setEncounters, roster, families, onError, onRunChange }) {
+export function Run({ run, encounters, setEncounters, roster, families, onError, onRunChange }) {
   const gen = run.generation
   const names = { p1: run.player1_name, p2: run.player2_name }
 
@@ -289,8 +290,22 @@ function MonSummary({ id, nickname, owner, entry, gen }) {
 /** One area = one linked pair: both players' catches and their shared status. */
 function AreaRow({ row, names, gen, options, rosterById, families, encounters, clash, onSave, onRemove }) {
   const status = STATUSES.find((s) => s.id === row.status)
+  const [dying, setDying] = useState(false)
   return (
     <div className={`encounter-row status-${row.status}${clash ? ' clash' : ''}`}>
+      {dying && (
+        <DeathDialog
+          row={row}
+          names={names}
+          rosterById={rosterById}
+          options={options}
+          onClose={() => setDying(false)}
+          onSave={(text) => {
+            setDying(false)
+            onSave(row, text ? { status: 'dead', died_at: text } : { status: 'dead' })
+          }}
+        />
+      )}
       <span className="area-name">
         {row.area}
         {!row.template && <span className="hidden-tag"> custom</span>}
@@ -313,7 +328,7 @@ function AreaRow({ row, names, gen, options, rosterById, families, encounters, c
         className="status-select"
         aria-label={`${row.area} status`}
         value={row.status}
-        onChange={(e) => onSave(row, { status: e.target.value })}
+        onChange={(e) => (e.target.value === 'dead' ? setDying(true) : onSave(row, { status: e.target.value }))}
         title={status?.label}
       >
         {STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}

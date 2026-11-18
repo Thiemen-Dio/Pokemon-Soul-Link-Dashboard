@@ -1,9 +1,98 @@
 # Test tab report
 
-Session: 18 Nov 2026, 18:32–18:58. Everything below lives on the **Test** tab (`/test`), plus one new page, `/overlay`.
-Open a run straight from the link: `/test?run=JetBlack` or `/test?run=Randomized Emerald`.
+Round 1: 18 Nov 2026, 18:32–18:58. Round 2 (your feedback): 18 Nov 2026, evening. Round 2 is right below; the round 1 report follows it.
 
-**Everything is read-only.** The Test tab and the overlay read runs and encounters but never write to the database. The two forms are mock-ups that save nothing.
+## Round 2: your feedback, what changed
+
+| Your note | What I did |
+|---|---|
+| Security: login and password | **Login page for the whole site** (e-mail + password, Supabase). "Create one" makes an account. "Log out" in the header. `/overlay` stays open without login (OBS can't log in, and it only reads). Database rule file ready: `supabase/migrations/002_logins_and_run_extras.sql`. **Not switched on yet**, see "Still to do" |
+| Home page should be the home page; choosing a run opens the run | `/test` is now a **home page**: the run you're playing (click it), cards for every run, news from all runs, "In which runs did we use…?", all runs side by side, Hall of Fame, **+ New run**. Clicking a run opens `/test/run/<name>` with everything for that run, including the real **run log** (the dashboard's area list, editable) |
+| Next boss and next area: fun | Kept at the top of the run page. The boss tile now shows the boss's type colour, the cap, and how many of your team are weak to it. It moves on when you mark bosses beaten in Level caps (remembered in this browser) |
+| Route finder: minimise | Folded away under "Scouting" (click + to open; only loads when opened) |
+| Area planner: minimise | Same, folded under "Scouting" |
+| What-if → better team planner | New **Team planner**: Thiemen's six and Finn's six side by side, linked per pair. Click a slot to add or swap a pair (pairs that would break the no-shared-types rule are greyed out, with the reason). **Pin/Pinned** per pair. **Randomize** and **Best option** keep pinned pairs and the rules. Best option weighs **base stat total**, **range** (types your own types hit 2×) and **weak spots** (types more of the team is weak to than resists). Shows avg BST, range x/17 (or 18), weak spots |
+| Level caps: good | Kept |
+| Free types: remove | Removed (the planner covers it) |
+| Swap suggestions: remove | Removed (the planner covers it) |
+| Evolution info: handy | Kept |
+| Rule check inside team planner | Moved into the planner's side panel, live for the plan |
+| History planner: remove | "Where did we use it?" moved to the home page as **"In which runs did we use…?"** (your Kyogre question) |
+| Graveyard + favourites | ☆/★ on each grave. Favourites go first with a gold frame. Shared between both of you (stored in the database: needs the update). The grave now also shows how the pair died |
+| Death report as pop-up when setting Dead | Done **on the real dashboard too**: choosing "Dead" opens a pop-up (cause, killed by, level, where, last words). Save to graveyard, Mark dead without details, or Cancel (nothing changes). Saved into the existing "died_at" field, so no database change needed |
+| Run Pokédex: stays | Kept |
+| Thiemen vs Finn: nicknamed goes, favourite typing stays | Renamed **Favourite types**, nickname % removed |
+| Where-used / All-run stats → home page | Both moved to the home page |
+| Achievements per run + overall, over the top | **Medals**: bronze, silver, gold and a legendary rainbow one, a shine when unlocked, progress bars on locked ones. 9 per run, 8 over all runs ("Hall of Fame" on the home page). Motion stops if your system asks for less motion |
+| Setup as a primary function with a +, styled better, randomizer rules | Big **+ New run** button on the home page. Opens a 3-step form: basics, house rules, randomizer. The randomizer part follows the **Universal Pokémon Randomizer ZX** groups: wild Pokémon, wild strength, starters, statics/gifts, trades, trainers, trainer levels, types, base stats, abilities, evolutions, movesets, TMs/tutors, items, plus common tweaks and a box for the randomizer's settings string. **Creates the run for real** (needs the database update for the rules column) |
+| Stream overlay: minimise | Folded under "Share & stream" |
+
+### Files (round 2)
+
+| File | What |
+|---|---|
+| `src/pages/Login.jsx` | New: login / create account, and `useSession` |
+| `src/App.jsx` | Login gate around every normal page; `/test/run/:runName` route |
+| `src/components/SiteHeader.jsx` | Log out button |
+| `src/components/DeathDialog.jsx` | New: the death pop-up |
+| `src/pages/Home.jsx` (dashboard) | "Dead" opens the pop-up; `Run` exported so the Test run page can show the real run log |
+| `src/api/soullink.js` | `createRun` |
+| `src/pages/test/Test.jsx` | Rebuilt: home page + run page |
+| `src/pages/test/TeamPlanner.jsx`, `planner.js`, `planner.check.mjs` | New: team planner, its maths, and a self-check |
+| `src/pages/test/Achievements.jsx` | New: medals per run and overall |
+| `src/pages/test/RunSetup.jsx` | New: "+ New run" (replaces `MockForms.jsx`, deleted) |
+| `src/pages/test/data.js` | `getBaseStatTotals` (PokeAPI) |
+| `src/index.css`, `src/pages/test/test.css` | Styles for all of the above; unused what-if / free types / mock styles removed |
+| `supabase/migrations/002_logins_and_run_extras.sql` | New, **not applied yet**: everyone reads, only allow-listed players write; `runs.rules`; `encounters.favorite` |
+
+### Still to do (needs you)
+
+1. **Make your accounts**: open the site, "No account yet? Create one", for both of you. Supabase sends a confirmation e-mail first.
+2. **Switch on the database rules**: tell me the two login e-mails and I'll apply `002` and put them on the allow-list. Until then the old situation stays: anyone with the public key can still change data. The login page only stops people using the website, not the database.
+3. Until `002` is applied, starring a grave and creating a run show a "needs the database update" message.
+
+### Decisions I made (easy to change)
+
+- **Who may change data** = an allow-list of e-mails in the database, not "anyone with an account". Then a stranger making an account can look but not edit, and you don't have to switch off sign-ups in Supabase.
+- **Reading stays public** so the OBS overlay works without login. Run data isn't secret, but say so if you want reading behind the login too.
+- **Planner score** = average BST ÷ 10 + 3 × range − 4 × each weak spot above 1. Tuned by eye; open to your expertise.
+- **Base stats** are today's numbers (Gen 6+ buffs included), not the run's generation.
+- **Bosses beaten** is remembered per browser for now, not shared.
+- **Old dashboard** (`/`) is untouched except for the death pop-up. The Test home links to it.
+
+### New ideas from round 2 (not built)
+
+- **"Use this team" button** in the planner: sets the 12 statuses in the run in one go.
+- **Planner weights as sliders**: you choose how much BST vs range vs weak spots matter.
+- **Planner looks ahead**: score against the next boss's type and level cap, and flag mons that will evolve before it.
+- **Death stats** from the new death details: deadliest cause, area, boss.
+- **Randomizer settings shown on the run page**, and the route finder hiding itself when wild Pokémon are randomized.
+- **Medal news**: a new medal shows up as a news item on the home page.
+- **Promote the Test home to the real home page** once you're happy (a route swap in `App.jsx`).
+
+### Checks (round 2)
+
+- `npm run build`: passes.
+- `node src/pages/test/data.check.mjs` and `node src/pages/test/planner.check.mjs`: pass (planner rules: pinned pairs stay, no shared primary types, high BST preferred).
+- Hidden browser, logged-in check (temporary skip, removed afterwards):
+  - Home shows both runs, news and Hall of Fame (1 of 8).
+  - New run form opens with 18 settings when "randomized" is on.
+  - Best option for Randomized Emerald: a valid six, range 17/17, 0 weak spots.
+  - Pinned pairs stayed through 5 randomizes.
+  - The death pop-up opens on "Dead", and Cancel leaves the pair unchanged. Nothing was saved.
+  - The folded route finder loads when opened.
+  - The login page shows when logged out.
+  - No page errors.
+  - Phone width (390px): planner and home fit, no sideways scrolling.
+- **Not checked:** actually logging in (no accounts yet), creating a run and starring a grave (need the database update), saving a death for real, the overlay in OBS.
+
+---
+
+# Round 1
+
+Everything below lives on the **Test** tab (`/test`), plus one new page, `/overlay`.
+
+**Round 1 was read-only.** (Round 2 changed this: the run page includes the editable run log, and New run creates runs.)
 
 ## Changes made
 

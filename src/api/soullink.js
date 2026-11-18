@@ -15,6 +15,10 @@ export async function getRuns() {
   return check(await db().from('runs').select('*').order('created_at', { ascending: true }))
 }
 
+export async function createRun(fields) {
+  return check(await db().from('runs').insert(fields).select().single())
+}
+
 export async function updateRun(id, fields) {
   return check(await db().from('runs').update(fields).eq('id', id).select().single())
 }

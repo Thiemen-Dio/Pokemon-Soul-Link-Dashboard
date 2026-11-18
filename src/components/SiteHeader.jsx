@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { supabase } from '../api/supabase.js'
 
 /**
  * Hide when scrolling down, show again as soon as the user scrolls up.
@@ -28,7 +29,7 @@ function useHideOnScrollDown() {
   return hidden
 }
 
-export default function SiteHeader() {
+export default function SiteHeader({ email }) {
   const hidden = useHideOnScrollDown()
   const { pathname } = useLocation()
   const onPokedex = pathname.startsWith('/pokedex')
@@ -39,7 +40,11 @@ export default function SiteHeader() {
         <span className="brand">Soul Link</span>
         <NavLink to="/" end>Dashboard</NavLink>
         <NavLink to="/pokedex">Pokédex</NavLink>
-        <NavLink to="/test">Test</NavLink>      </nav>
+        <NavLink to="/test">Test</NavLink>
+        <button type="button" className="logout" title={email ? `Logged in as ${email}` : undefined} onClick={() => supabase?.auth.signOut()}>
+          Log out
+        </button>
+      </nav>
       {onPokedex && (
         <nav className="tabs-bar" aria-label="Pokédex sections">
           <div className="tabs">

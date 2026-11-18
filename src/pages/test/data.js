@@ -119,3 +119,19 @@ function evolutionHow(e) {
   if (e.evolutiontrigger?.name === 'trade') bits.push('trade')
   return bits.join(', ') || e.evolutiontrigger?.name?.replace(/-/g, ' ') || 'special'
 }
+
+/**
+ * Base stat totals per PokeAPI pokemon id: { [id]: 525 }.
+ * shortcut: today's stats (Gen 6+ buffs included), upgrade if older-gen totals matter.
+ */
+export async function getBaseStatTotals(ids) {
+  if (ids.length === 0) return {}
+  const query = 'query ($ids: [Int!]) { pokemonstat(where: {pokemon_id: {_in: $ids}}) { pokemon_id base_stat } }'
+  const r = await fetch(GRAPHQL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query, variables: { ids } }) })
+  if (!r.ok) throw new Error(`PokeAPI returned ${r.status}`)
+  const { data, errors } = await r.json()
+  if (errors) throw new Error(errors[0].message)
+  const totals = {}
+  for (const s of data.pokemonstat) totals[s.pokemon_id] = (totals[s.pokemon_id] ?? 0) + s.base_stat
+  return totals
+}

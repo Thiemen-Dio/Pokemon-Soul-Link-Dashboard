@@ -1,70 +1,205 @@
-// Test tab: prototypes for new pages and features. Read-only: it never writes run data.
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+// Test tab: prototypes for new pages. /test = home across all runs, /test/run/:name = one run.
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { chartForGeneration, defensiveMatchups, displayName, getTypeData, spriteUrl, TYPE_COLORS } from '../../api/pokeapi.js'
 import { getEvolutionFamilies, getGames, getLearnset, getMoves, getTypeRoster, rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
-import { getEncounters, getRuns } from '../../api/soullink.js'
+import { getEncounters, getRuns, saveEncounter, subscribeToRun } from '../../api/soullink.js'
 import { gameLabel } from '../../api/games.js'
 import TypeLink from '../../components/TypeLink.jsx'
-import { PLAYERS, TEAM_SIZE, areaRows, findDupes, primaryType, typeConflicts } from '../../soullink/rules.js'
+import { Run } from '../Home.jsx'
+import { PLAYERS, TEAM_SIZE, areaRows, primaryType } from '../../soullink/rules.js'
 import { GIFTS, LEVEL_CAPS, catches, getAreaEncounters, getNextEvolutions, locationSlug, teamPrimaryTypes, timeAgo, versionOf } from './data.js'
 import { STARTERS } from '../../components/starters.js'
-import { DeathReport, RunSetup } from './MockForms.jsx'
+import Medals, { overallAchievements, runAchievements } from './Achievements.jsx'
+import NewRunButton from './RunSetup.jsx'
+import TeamPlanner from './TeamPlanner.jsx'
 import './test.css'
 
-// Jump menu, grouped like the categories on the page.
-const SECTIONS = [
-  ['Home', [['home', 'Home & news']]],
-  ['Before you play', [['next', 'Next up'], ['route', 'Route finder'], ['planner', 'Area planner'], ['whatif', 'What-if'], ['caps', 'Level caps'], ['prep', 'Boss prep']]],
-  ['Team', [['coverage', 'Weaknesses'], ['free', 'Free types'], ['swaps', 'Swaps'], ['evo', 'Evolutions'], ['rules', 'Rule check']]],
-  ['History', [['timeline', 'Timeline'], ['graveyard', 'Graveyard'], ['death', 'Death report'], ['dex', 'Run Pokédex'], ['players', 'Player vs player'], ['history', 'Where used'], ['stats', 'All-run stats'], ['badges', 'Achievements']]],
-  ['Setup', [['setup', 'New run']]],
-  ['Share & stream', [['overlay', 'Overlay'], ['share', 'Summary']]],
-]
+const RUN_STATE = { active: 'In progress', won: 'Beaten', lost: 'Lost' }
+const runLink = (r) => `/test/run/${encodeURIComponent(r.name)}`
+
+/** Pokémon data every page needs: roster (names, Gen types) and evolution families. */
+function usePokemonData() {
+  const [data, setData] = useState({ roster: [], families: {}, error: '' })
+  useEffect(() => {
+    Promise.all([getTypeRoster(), getEvolutionFamilies()])
+      .then(([roster, families]) => setData({ roster, families, error: '' }))
+      .catch(() => setData((d) => ({ ...d, error: 'Couldn’t load Pokémon data from PokeAPI.' })))
+  }, [])
+  const rosterById = useMemo(() => Object.fromEntries(data.roster.map((e) => [e.id, e])), [data.roster])
+  return { ...data, rosterById }
+}
+
+// ================= Home: all runs =================
 
 export default function Test() {
-  const [runs, setRuns] = useState([])
-  const [runId, setRunId] = useState(null)
-  const [encounters, setEncounters] = useState([])
-  const [roster, setRoster] = useState([])
-  const [families, setFamilies] = useState({})
+  const { rosterById, families, error: dataError } = usePokemonData()
+  const [runs, setRuns] = useState(null)
+  const [byRun, setByRun] = useState(null)
   const [error, setError] = useState('')
-
   useEffect(() => {
-    getRuns().then((list) => {
-      setRuns(list)
-      // ?run=Name picks a run straight from the link.
-      const wanted = new URLSearchParams(location.search).get('run')?.toLowerCase()
-      setRunId((list.find((r) => r.name.toLowerCase() === wanted) ?? list.find((r) => r.status === 'active') ?? list.at(-1))?.id ?? null)
-    }).catch((e) => setError(e.message))
-    Promise.all([getTypeRoster(), getEvolutionFamilies()])
-      .then(([r, f]) => { setRoster(r); setFamilies(f) })
-      .catch(() => setError('Couldn’t load Pokémon data from PokeAPI.'))
+    getRuns()
+      .then(async (list) => { setRuns(list); setByRun(await Promise.all(list.map((r) => getEncounters(r.id)))) })
+      .catch((e) => setError(e.message))
   }, [])
+  const lastVisit = useLastVisit('home')
 
-  // Remember which run the encounters belong to, so the prototypes only start once they're in.
-  const [loadedFor, setLoadedFor] = useState(null)
-  useEffect(() => {
-    if (runId) getEncounters(runId).then((list) => { setEncounters(list); setLoadedFor(runId) }).catch((e) => setError(e.message))
-  }, [runId])
-
-  const run = runs.find((r) => r.id === runId)
-  const rosterById = useMemo(() => Object.fromEntries(roster.map((e) => [e.id, e])), [roster])
+  if (error) return <p className="status error">{error}</p>
+  if (!runs || !byRun) return <p className="status">Loading runs…</p>
+  const active = runs.find((r) => r.status === 'active') ?? runs.at(-1)
+  const activeIndex = runs.indexOf(active)
+  const news = runs.flatMap((r, i) => byRun[i].filter((e) => e.p1_pokemon_id || e.p2_pokemon_id).map((e) => ({ ...e, run: r })))
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 8)
 
   return (
     <section className="test-page">
       <div className="page-head">
-        <h2>Test lab</h2>
-        <div className="run-picker" role="tablist" aria-label="Runs">
-          {runs.map((r) => (
-            <button key={r.id} role="tab" aria-selected={r.id === runId} className={r.id === runId ? 'run-chip active' : 'run-chip'} onClick={() => setRunId(r.id)}>
-              {r.name}
-            </button>
-          ))}
+        <h2>Soul Link</h2>
+        <NewRunButton />
+      </div>
+      {dataError && <p className="status error">{dataError}</p>}
+      {active && <HomeHero run={active} encounters={byRun[activeIndex]} />}
+
+      <h3 className="category-title">Your runs</h3>
+      <ul className="run-cards">
+        {runs.map((r, i) => {
+          const rows = areaRows(r.base_game, byRun[i])
+          return (
+            <li key={r.id}>
+              <Link to={runLink(r)} className="run-card">
+                <span className={`run-state ${r.status}`}>{RUN_STATE[r.status]}</span>
+                <strong>{r.name}</strong>
+                <span className="status small-print">{gameLabel(r.base_game)}{r.randomized ? ' · Randomized' : ''} · {r.player1_name} & {r.player2_name}</span>
+                <span className="run-card-team">
+                  {rows.filter((x) => x.status === 'team').map((x) => <Mon key={x.area} id={x.p1_pokemon_id} size={32} />)}
+                </span>
+                <Timeline rows={rows} small />
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+
+      <div className="home-grid">
+        <div>
+          <h3 className="category-title">Latest news</h3>
+          {news.length === 0 ? <p className="status">No catches yet. News shows up as soon as someone catches something.</p> : (
+            <ul className="news">
+              {news.map((e) => (
+                <li key={e.id} className={lastVisit && e.updated_at > lastVisit ? 'is-new' : ''}>
+                  <span className="news-mons"><Mon id={e.p1_pokemon_id} size={40} /><Mon id={e.p2_pokemon_id} size={40} /></span>
+                  <span>
+                    <strong>{e.area}</strong>: {PLAYERS.map((p) => e[`${p}_nickname`] || monName(e[`${p}_pokemon_id`], rosterById)).join(' & ')} {NEWS_VERB[e.status]}
+                    <span className="status small-print"> · {e.run.name}</span>
+                  </span>
+                  <span className="status small-print">{timeAgo(e.updated_at)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <h3 className="category-title">Go to</h3>
+          <div className="doors">
+            <Link to="/pokedex" className="door"><strong>Pokédex</strong><span>Look up any Pokémon</span></Link>
+            <Link to="/pokedex/types" className="door"><strong>Type chart</strong><span>Gen-correct matchups</span></Link>
+            <Link to="/pokedex/moves" className="door"><strong>Moves</strong><span>Who learns what</span></Link>
+            <Link to="/" className="door"><strong>Old dashboard</strong><span>The current run page</span></Link>
+          </div>
         </div>
       </div>
-      <p className="status">Prototypes to try out. Everything here only reads your runs; nothing is saved.</p>
-      <nav className="test-jump" aria-label="Prototypes">
+
+      <Card id="history" title="In which runs did we use…?" idea="Search any Pokémon: every run and area its evolution line was caught in, and how it ended.">
+        <History runs={runs} byRun={byRun} rosterById={rosterById} families={families} />
+      </Card>
+      <Card id="stats" title="All runs side by side" idea="Catches, deaths, survival rate and favourite type per run.">
+        <AllRunStats runs={runs} byRun={byRun} rosterById={rosterById} />
+      </Card>
+      <Card id="hall" title="Hall of Fame" idea="Achievements over every run you’ve ever played.">
+        <Medals list={overallAchievements(runs, byRun, rosterById, families)} />
+      </Card>
+    </section>
+  )
+}
+
+const NEWS_VERB = { team: 'joined the team', box: 'went to the PC', dead: 'fell', failed: 'failed', pending: 'got a first catch' }
+
+/** When this browser last opened a page (per viewer, so no database needed). */
+function useLastVisit(id) {
+  const key = `test-last-visit-${id}`
+  const [last] = useState(() => {
+    try { return localStorage.getItem(key) } catch { return null }
+  })
+  useEffect(() => {
+    try { localStorage.setItem(key, new Date().toISOString()) } catch { /* not remembered */ }
+  }, [key])
+  return last
+}
+
+function HomeHero({ run, encounters }) {
+  const rows = areaRows(run.base_game, encounters)
+  const used = rows.filter((r) => r.status !== 'pending').length
+  const team = rows.filter((r) => r.status === 'team')
+  const next = rows.find((r) => r.status === 'pending')
+  const boss = LEVEL_CAPS[run.base_game]?.[readBeaten(run.id)]
+  return (
+    <Link to={runLink(run)} className="home-hero">
+      <div>
+        <span className="status small-print">{run.status === 'active' ? 'Playing now' : RUN_STATE[run.status]} · {gameLabel(run.base_game)}</span>
+        <strong className="hero-name">{run.name}</strong>
+        <div className="hero-progress" style={{ '--p': rows.length ? used / rows.length : 0 }} title={`${used} of ${rows.length} areas`} />
+        <span className="status small-print">{used} of {rows.length} areas · next: {next?.area ?? 'none left'}{boss ? ` · next boss ${boss[0]} (cap ${boss[2]})` : ''}</span>
+      </div>
+      <div className="hero-team">
+        {team.length === 0 && <span className="status small-print">No team yet</span>}
+        {team.map((r) => (
+          <span key={r.area} className="overlay-pair" title={r.area}>
+            <Mon id={r.p1_pokemon_id} size={48} /><span className="overlay-link" /><Mon id={r.p2_pokemon_id} size={48} />
+          </span>
+        ))}
+      </div>
+    </Link>
+  )
+}
+
+// ================= One run =================
+
+// Jump menu, grouped like the categories on the page.
+const SECTIONS = [
+  ['Now', [['next', 'Next up'], ['log', 'Run log']]],
+  ['Team', [['planner', 'Team planner'], ['caps', 'Level caps'], ['prep', 'Boss prep'], ['coverage', 'Weaknesses'], ['evo', 'Evolutions']]],
+  ['Story', [['graveyard', 'Graveyard'], ['dex', 'Run Pokédex'], ['players', 'Favourite types'], ['badges', 'Achievements'], ['timeline', 'Timeline']]],
+  ['Scouting', [['route', 'Route finder'], ['areas', 'Area planner']]],
+  ['Share', [['overlay', 'Overlay'], ['share', 'Summary']]],
+]
+
+export function TestRun() {
+  const { runName } = useParams()
+  const { roster, rosterById, families, error: dataError } = usePokemonData()
+  const [runs, setRuns] = useState(null)
+  const [encounters, setEncounters] = useState(null)
+  const [error, setError] = useState('')
+  const loadRuns = useCallback(() => getRuns().then(setRuns), [])
+  useEffect(() => { loadRuns().catch((e) => setError(e.message)) }, [loadRuns])
+  const run = runs?.find((r) => r.name.toLowerCase() === runName.toLowerCase())
+
+  // This run's areas, reloaded whenever either player changes something.
+  const runId = run?.id
+  useEffect(() => {
+    if (!runId) return
+    setEncounters(null)
+    const load = () => getEncounters(runId).then(setEncounters).catch((e) => setError(e.message))
+    load()
+    return subscribeToRun(runId, () => { load(); loadRuns().catch(() => {}) })
+  }, [runId, loadRuns])
+
+  if (error) return <p className="status error">{error}</p>
+  if (!runs) return <p className="status">Loading…</p>
+  if (!run) return <p className="status">No run called “{runName}”. <Link to="/test">All runs</Link></p>
+  return (
+    <section className="test-page">
+      <Link to="/test" className="back-link">← All runs</Link>
+      <nav className="test-jump" aria-label="Sections">
         {SECTIONS.map(([group, items]) => (
           <div key={group} className="jump-group">
             <span className="jump-label">{group}</span>
@@ -72,103 +207,105 @@ export default function Test() {
           </div>
         ))}
       </nav>
-      {error && <p className="status error">{error}</p>}
-      {run && loadedFor !== run.id && <p className="status">Loading {run.name}…</p>}
-      {run && loadedFor === run.id && (
-        <Lab key={run.id} run={run} runs={runs} encounters={encounters} rosterById={rosterById} families={families} />
+      {(dataError) && <p className="status error">{dataError}</p>}
+      {!encounters ? <p className="status">Loading {run.name}…</p> : (
+        <RunLab
+          key={run.id}
+          run={run}
+          encounters={encounters}
+          setEncounters={setEncounters}
+          roster={roster}
+          rosterById={rosterById}
+          families={families}
+          onError={setError}
+          onRunChange={(r) => setRuns((list) => list.map((x) => (x.id === r.id ? r : x)))}
+        />
       )}
     </section>
   )
 }
 
-function Lab({ run, runs, encounters, rosterById, families }) {
+// Bosses beaten, per run in this browser. shortcut: not shared between players, store on the run when it matters.
+const readBeaten = (runId) => { try { return Number(localStorage.getItem(`test-beaten-${runId}`)) || 0 } catch { return 0 } }
+
+function RunLab({ run, encounters, setEncounters, roster, rosterById, families, onError, onRunChange }) {
   const gen = run.generation
   const names = { p1: run.player1_name, p2: run.player2_name }
   const rows = areaRows(run.base_game, encounters)
   const team = rows.filter((r) => r.status === 'team')
-  const props = { run, gen, names, rows, team, encounters, rosterById, families }
+  const chart = useChart(gen)
+  const [beaten, setBeatenState] = useState(() => readBeaten(run.id))
+  const setBeaten = (n) => { setBeatenState(n); try { localStorage.setItem(`test-beaten-${run.id}`, String(n)) } catch { /* not remembered */ } }
+  const props = { run, gen, names, rows, team, encounters, rosterById, families, chart }
+
+  async function toggleFavorite(r) {
+    try {
+      const saved = await saveEncounter(run.id, r.area, r.sort_order, { favorite: !r.favorite })
+      setEncounters((list) => list.map((e) => (e.id === saved.id ? saved : e)))
+    } catch (e) {
+      onError(/favorite/.test(e.message) ? 'Favourites need the database update first (supabase/migrations/002).' : e.message)
+    }
+  }
+
   return (
     <>
-      <Category id="cat-home" title="Home" note="What a front page could hold.">
-        <Card id="home" title="Home & news" idea="A front page: the run you’re playing, what happened lately, and doors to the other pages.">
-          <Home {...props} runs={runs} />
-        </Card>
+      <Category id="cat-now" title={run.name} note={`${gameLabel(run.base_game)} · Gen ${gen} types${run.randomized ? ' · Randomized' : ''} · ${names.p1} & ${names.p2}`}>
+        <NextUp {...props} beaten={beaten} />
+        <details id="log" className="test-card fold" open>
+          <summary><h3>Run log</h3><span className="status small-print">Catches, statuses and the team: the same as the dashboard. Setting a pair to Dead asks what happened.</span></summary>
+          <div className="soullink">
+            <Run run={run} encounters={encounters} setEncounters={setEncounters} roster={roster} families={families} onError={onError} onRunChange={onRunChange} />
+          </div>
+        </details>
       </Category>
 
-      <Category id="cat-play" title="Before you play" note="Planning the next stretch: Pokédex data meets the run.">
-        <Card id="next" title="Next up" idea="One glance before you play: where to go next and what the next boss is.">
-          <NextUp {...props} />
-        </Card>
-        <Card id="route" title="Route finder" idea="What can appear on an area in this game, with dupe chance, dupes and type clashes marked.">
-          <RouteFinder {...props} />
-        </Card>
-        <Card id="planner" title="Area planner" idea="Every area you haven’t done yet, ranked by how many evolution lines there are still new to you.">
-          <AreaPlanner {...props} />
-        </Card>
-        <Card id="whatif" title="What-if checker" idea="Type the two Pokémon you might catch on the next area: see if the pair is a dupe, clashes with the team, and where it would go.">
-          <WhatIf {...props} />
+      <Category id="cat-team" title="Team" note="Building the six pairs and getting ready for the next boss.">
+        <Card id="planner" title="Team planner" idea="Both sixes side by side. Click a slot to add a pair, pin the ones you want to keep, then Randomize or let Best option pick.">
+          <TeamPlanner {...props} />
         </Card>
         <Card id="caps" title="Level caps" idea="The bosses in order, with their ace’s level as the cap and how many of your team are weak to them. Vanilla numbers: hacks need their own list.">
-          <LevelCaps {...props} />
+          <LevelCaps {...props} beaten={beaten} setBeaten={setBeaten} />
         </Card>
-        <Card id="prep" title="Boss prep" idea="For a chosen boss: the best super-effective moves each team member learns by level-up before the cap. Pokédex learnsets × run × caps.">
+        <Card id="prep" title="Boss prep" idea="For a chosen boss: the best super-effective moves each team member learns by level-up before the cap.">
           <BossPrep {...props} />
         </Card>
-      </Category>
-
-      <Category id="cat-team" title="Team" note="Building and checking the six pairs.">
-        <Card id="coverage" title="Team weaknesses & coverage" idea="How many of your team are weak to each attacking type, and which types your team’s own types hit hard. Gen-correct chart.">
+        <Card id="coverage" title="Team weaknesses & coverage" idea="How many of your team are weak to each attacking type, and which types your team’s own types hit hard.">
           <Coverage {...props} />
-        </Card>
-        <Card id="free" title="Free primary types" idea="Which primary types are still open for the team (no shared types rule).">
-          <FreeTypes {...props} />
-        </Card>
-        <Card id="swaps" title="Swap suggestions" idea="PC pairs that could join the team right now without a type clash.">
-          <Swaps {...props} />
         </Card>
         <Card id="evo" title="Evolution watch" idea="What your living Pokémon evolve into next and how, limited to evolutions that exist in the run’s generation.">
           <EvolutionWatch {...props} />
         </Card>
-        <Card id="rules" title="Rule check" idea="Your house rules as a live checklist.">
-          <RuleCheck {...props} />
-        </Card>
       </Category>
 
-      <Category id="cat-history" title="History" note="Looking back, within a run and across runs.">
-        <Card id="timeline" title="Run timeline" idea="Every area as a dot in game order, coloured by what happened there.">
-          <Timeline {...props} />
-        </Card>
-        <Card id="graveyard" title="Graveyard" idea="A memorial for fallen pairs. Streamers love this one.">
-          <Graveyard {...props} />
-        </Card>
-        <Card id="death" title="Death report (mock)" idea="How logging a death could look: cause, killer, level, last words. Feeds the graveyard and death stats.">
-          <DeathReport {...props} />
+      <Category id="cat-story" title="Story" note="What happened in this run.">
+        <Card id="graveyard" title="Graveyard" idea="A memorial for fallen pairs. Star the ones you’ll never forget.">
+          <Graveyard {...props} onFavorite={toggleFavorite} />
         </Card>
         <Card id="dex" title="Run Pokédex" idea="This generation’s new Pokémon: coloured if caught in this run, a silhouette if not.">
           <RunDex {...props} />
         </Card>
-        <Card id="players" title={`${names.p1} vs ${names.p2}`} idea="Friendly rivalry: what each player brought to the run.">
+        <Card id="players" title="Favourite types" idea={`What ${names.p1} and ${names.p2} like to catch.`}>
           <Players {...props} />
         </Card>
-        <Card id="history" title="Where did we use it?" idea="Search any Pokémon and see every run and area its line was caught in, and how it ended. Could become a badge on Pokédex cards.">
-          <History runs={runs} rosterById={rosterById} families={families} />
+        <Card id="badges" title="Achievements" idea="Milestones in this run. The ones over all runs are on the home page.">
+          <Medals list={runAchievements(run, rows, rosterById)} />
         </Card>
-        <Card id="stats" title="All-run stats" idea="Compare runs: catches, deaths, survival rate, favourite types.">
-          <AllRunStats runs={runs} rosterById={rosterById} />
-        </Card>
-        <Card id="badges" title="Achievements" idea="Milestones worked out from the run. Each one could also appear as a news item on the home page.">
-          <Achievements {...props} />
+        <Card id="timeline" title="Run timeline" idea="Every area as a dot in game order, coloured by what happened there.">
+          <Timeline rows={rows} />
         </Card>
       </Category>
 
-      <Category id="cat-setup" title="Setup" note="Starting a run and choosing its house rules.">
-        <Card id="setup" title="New run setup (mock)" idea="A form for starting a run with its own rule set, instead of rules being built into the app.">
-          <RunSetup />
+      <Category id="cat-scout" title="Scouting" note="Folded away for now: open when you need them.">
+        <Card id="route" title="Route finder" idea="What can appear on an area in this game, with dupe chance, dupes and type clashes marked." folded>
+          <RouteFinder {...props} />
+        </Card>
+        <Card id="areas" title="Area planner" idea="Every area you haven’t done yet, ranked by how many evolution lines there are still new to you." folded>
+          <AreaPlanner {...props} />
         </Card>
       </Category>
 
       <Category id="cat-share" title="Share & stream" note="For Discord, chat and OBS.">
-        <Card id="overlay" title="Stream overlay" idea="A strip of linked pairs. The real one is at /overlay?run=Name (see-through, updates live).">
+        <Card id="overlay" title="Stream overlay" idea="A strip of linked pairs for OBS, at /overlay?run=Name (see-through, updates live)." folded>
           <Overlay {...props} />
         </Card>
         <Card id="share" title="Share summary" idea="A short text about the run to paste in Discord, WhatsApp or stream chat.">
@@ -189,7 +326,17 @@ function Category({ id, title, note, children }) {
   )
 }
 
-function Card({ id, title, idea, children }) {
+/** A prototype card. folded = minimised until opened, and its contents only load then. */
+function Card({ id, title, idea, folded, children }) {
+  const [open, setOpen] = useState(!folded)
+  if (folded) {
+    return (
+      <details id={id} className="test-card fold" onToggle={(e) => setOpen(e.currentTarget.open)}>
+        <summary><h3>{title}</h3><span className="status small-print">{idea}</span></summary>
+        {open && children}
+      </details>
+    )
+  }
   return (
     <article id={id} className="test-card">
       <header>
@@ -204,102 +351,48 @@ function Card({ id, title, idea, children }) {
 const Mon = ({ id, size = 48 }) => (id ? <img className="pixel" src={spriteUrl(id)} alt="" width={size} height={size} loading="lazy" /> : null)
 const monName = (id, rosterById) => rosterById[id]?.label ?? (id ? `#${id}` : '—')
 
-// ---- Home & news ----
-
-const NEWS_VERB = { team: 'joined the team', box: 'went to the PC', dead: 'fell', failed: 'failed', pending: 'got a first catch' }
-
-/** When this browser last opened the Test tab for a run (per viewer, so no database needed). */
-function useLastVisit(runId) {
-  const key = `test-last-visit-${runId}`
-  const [last] = useState(() => {
-    try { return localStorage.getItem(key) } catch { return null }
-  })
-  useEffect(() => {
-    try { localStorage.setItem(key, new Date().toISOString()) } catch { /* not remembered */ }
-  }, [key])
-  return last
-}
-
-function Home({ runs, encounters, rosterById, names, run }) {
-  const lastVisit = useLastVisit(run.id)
-  const news = [...encounters].filter((e) => e.p1_pokemon_id || e.p2_pokemon_id).sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 6)
-  const rows = areaRows(run.base_game, encounters)
-  const used = rows.filter((r) => r.status !== 'pending').length
-  const team = rows.filter((r) => r.status === 'team')
-  const next = rows.find((r) => r.status === 'pending')
-  const cap = LEVEL_CAPS[run.base_game]?.[0]
-  return (
-    <>
-    <div className="home-hero">
-      <div>
-        <span className="status small-print">{run.status === 'active' ? 'Playing now' : run.status === 'won' ? 'Beaten' : 'Lost'} · {gameLabel(run.base_game)}</span>
-        <strong className="hero-name">{run.name}</strong>
-        <div className="hero-progress" style={{ '--p': rows.length ? used / rows.length : 0 }} title={`${used} of ${rows.length} areas`} />
-        <span className="status small-print">{used} of {rows.length} areas · next: {next?.area ?? 'none left'}{cap ? ` · next cap ${cap[2]} (${cap[0]})` : ''}</span>
-      </div>
-      <div className="hero-team">
-        {team.length === 0 && <span className="status small-print">No team yet</span>}
-        {team.map((r) => (
-          <span key={r.area} className="overlay-pair" title={r.area}>
-            <Mon id={r.p1_pokemon_id} size={48} /><span className="overlay-link" /><Mon id={r.p2_pokemon_id} size={48} />
-          </span>
-        ))}
-      </div>
-    </div>
-    <div className="home-grid">
-      <div>
-        <h4 className="mini-title">Latest in {run.name}</h4>
-        {news.length === 0 ? (
-          <p className="status">No catches yet. News shows up here as soon as someone catches something.</p>
-        ) : (
-          <ul className="news">
-            {news.map((e) => (
-              <li key={e.id} className={lastVisit && e.updated_at > lastVisit ? 'is-new' : ''}>
-                <span className="news-mons"><Mon id={e.p1_pokemon_id} size={40} /><Mon id={e.p2_pokemon_id} size={40} /></span>
-                <span>
-                  <strong>{e.area}</strong>: {PLAYERS.map((p) => e[`${p}_nickname`] || monName(e[`${p}_pokemon_id`], rosterById)).join(' & ')} {NEWS_VERB[e.status]}
-                  {e.status === 'dead' && e.died_at && ` (${e.died_at})`}
-                </span>
-                <span className="status small-print">{timeAgo(e.updated_at)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      <div>
-        <h4 className="mini-title">Runs</h4>
-        <ul className="door-list">
-          {runs.map((r) => (
-            <li key={r.id}><span className={`run-state ${r.status}`}>{r.status === 'won' ? 'Beaten' : r.status === 'lost' ? 'Lost' : 'In progress'}</span> {r.name} <span className="status small-print">{gameLabel(r.base_game)}</span></li>
-          ))}
-        </ul>
-        <h4 className="mini-title">Go to</h4>
-        <div className="doors">
-          <Link to="/" className="door"><strong>Dashboard</strong><span>Log catches for {names.p1} & {names.p2}</span></Link>
-          <Link to="/pokedex" className="door"><strong>Pokédex</strong><span>Look up any Pokémon</span></Link>
-          <Link to="/pokedex/types" className="door"><strong>Type chart</strong><span>Gen-correct matchups</span></Link>
-          <Link to="/pokedex/moves" className="door"><strong>Moves</strong><span>Who learns what</span></Link>
-          <a href={`/overlay?run=${encodeURIComponent(run.name)}`} className="door" target="_blank" rel="noreferrer"><strong>Stream overlay</strong><span>Team strip for OBS</span></a>
-          <a href="#graveyard" className="door"><strong>Graveyard</strong><span>{rows.filter((r) => r.status === 'dead').length} fallen pairs</span></a>
-        </div>
-      </div>
-    </div>
-    </>
-  )
-}
-
 // ---- Next up ----
 
-function NextUp({ rows, run, team }) {
+function NextUp({ rows, run, team, chart, rosterById, gen, beaten }) {
   const next = rows.find((r) => r.status === 'pending')
   const caps = LEVEL_CAPS[run.base_game]
+  const boss = caps?.[beaten]
+  const mons = teamMons(team, rosterById)
+  const weak = boss && chart && mons.length ? matchupCounts(chart, mons, gen, boss[1]).weak : null
   return (
     <div className="next-up">
       <div className="next-tile"><span className="status small-print">Next area</span><strong>{next?.area ?? 'All done'}</strong></div>
-      <div className="next-tile"><span className="status small-print">Next boss (first in list)</span><strong>{caps ? `${caps[0][0]} · cap ${caps[0][2]}` : 'No list for this game'}</strong></div>
+      <div className="next-tile boss" style={{ '--type-color': boss ? TYPE_COLORS[boss[1]] : undefined }}>
+        <span className="status small-print">Next boss</span>
+        <strong>{boss ? boss[0] : caps ? 'All bosses beaten' : 'No list for this game'}</strong>
+        {boss && <span className="small-print">{displayName(boss[1])} · cap Lv {boss[2]}{weak !== null && ` · ${weak}/${mons.length} of your team weak`}</span>}
+      </div>
       <div className="next-tile"><span className="status small-print">Team</span><strong>{team.length}/{TEAM_SIZE} pairs</strong></div>
-      <p className="status small-print">Idea: store “bosses beaten” on the run so the boss tile moves on by itself.</p>
     </div>
+  )
+}
+
+// ---- Graveyard ----
+
+function Graveyard({ rows, rosterById, names, onFavorite }) {
+  // Favourites first, then in game order.
+  const dead = rows.filter((r) => r.status === 'dead').sort((a, b) => (b.favorite === true) - (a.favorite === true))
+  if (dead.length === 0) return <p className="status">Nobody has fallen yet. Long may it last.</p>
+  return (
+    <ul className="graves">
+      {dead.map((r) => (
+        <li key={r.area} className={r.favorite ? 'favorite' : ''}>
+          <button type="button" className="grave-star" aria-pressed={!!r.favorite} onClick={() => onFavorite(r)} title={r.favorite ? 'Remove from favourites' : 'Favourite: never forget'}>
+            {r.favorite ? '★' : '☆'}
+          </button>
+          <span className="grave-mons"><Mon id={r.p1_pokemon_id} /><Mon id={r.p2_pokemon_id} /></span>
+          <strong>{PLAYERS.map((p) => r[`${p}_nickname`] || monName(r[`${p}_pokemon_id`], rosterById)).join(' & ')}</strong>
+          <span className="status small-print">Caught on {r.area}</span>
+          {r.died_at && <span className="small-print grave-how">{r.died_at}</span>}
+          <span className="status small-print">{names.p1} & {names.p2}</span>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -393,10 +486,8 @@ function RouteFinder({ run, gen, rows, encounters, rosterById, families, names }
 
 // ---- Level caps ----
 
-function LevelCaps({ run, team, gen, rosterById }) {
+function LevelCaps({ run, team, gen, rosterById, chart, beaten, setBeaten }) {
   const caps = LEVEL_CAPS[run.base_game]
-  const [beaten, setBeaten] = useState(0)
-  const chart = useChart(gen)
   const mons = teamMons(team, rosterById)
   if (!caps) return <p className="status">No boss list for {gameLabel(run.base_game)} yet.</p>
   return (
@@ -407,7 +498,7 @@ function LevelCaps({ run, team, gen, rosterById }) {
           const weak = chart && mons.length ? matchupCounts(chart, mons, gen, type).weak : null
           return (
             <li key={boss} className={i < beaten ? 'done' : i === beaten ? 'current' : ''} style={{ '--type-color': TYPE_COLORS[type] }}>
-              <button type="button" onClick={() => setBeaten(i + 1 === beaten ? i : i + 1)} title="Mark beaten (not saved)">
+              <button type="button" onClick={() => setBeaten(i + 1 === beaten ? i : i + 1)} title="Mark beaten">
                 <span className="cap-level">{level}</span>
                 <span className="cap-boss">{boss}</span>
                 <span className="cap-type">{displayName(type)}</span>
@@ -417,7 +508,7 @@ function LevelCaps({ run, team, gen, rosterById }) {
           )
         })}
       </ol>
-      <p className="status small-print">Click a boss to mark it and everything before it as beaten (not saved). “Weak” counts team members hurt extra by the boss’s main type.</p>
+      <p className="status small-print">Click a boss to mark it and everything before it as beaten (remembered in this browser; Next up follows it). “Weak” counts team members hurt extra by the boss’s main type.</p>
     </>
   )
 }
@@ -437,8 +528,7 @@ function matchupCounts(chart, mons, gen, attacker) {
   return { weak: ms.filter((x) => x > 1).length, resist: ms.filter((x) => x < 1).length }
 }
 
-function Coverage({ team, gen, rosterById }) {
-  const chart = useChart(gen)
+function Coverage({ team, gen, rosterById, chart }) {
   const mons = teamMons(team, rosterById)
   if (!chart) return <p className="status">Loading the type chart…</p>
   if (mons.length === 0) return <p className="status">Nobody on the team yet. Weaknesses show up once a pair joins.</p>
@@ -473,34 +563,15 @@ function Coverage({ team, gen, rosterById }) {
 
 // ---- Timeline ----
 
-function Timeline({ rows }) {
+function Timeline({ rows, small }) {
   const done = rows.filter((r) => r.status !== 'pending').length
   return (
     <>
       <div className="timeline" role="list">
         {rows.map((r) => <span key={r.area} role="listitem" className={`dot s-${r.status}`} title={`${r.area}: ${r.status}`} />)}
       </div>
-      <p className="status small-print">{done} of {rows.length} areas used · green team, blue PC, red dead, grey failed, hollow not yet.</p>
+      {!small && <p className="status small-print">{done} of {rows.length} areas used · green team, blue PC, red dead, grey failed, hollow not yet.</p>}
     </>
-  )
-}
-
-// ---- Graveyard ----
-
-function Graveyard({ rows, rosterById, names }) {
-  const dead = rows.filter((r) => r.status === 'dead')
-  if (dead.length === 0) return <p className="status">Nobody has fallen yet. Long may it last.</p>
-  return (
-    <ul className="graves">
-      {dead.map((r) => (
-        <li key={r.area}>
-          <span className="grave-mons"><Mon id={r.p1_pokemon_id} /><Mon id={r.p2_pokemon_id} /></span>
-          <strong>{PLAYERS.map((p) => r[`${p}_nickname`] || monName(r[`${p}_pokemon_id`], rosterById)).join(' & ')}</strong>
-          <span className="status small-print">Caught on {r.area}{r.died_at ? ` · ${r.died_at}` : ''}</span>
-          <span className="status small-print">{names.p1} & {names.p2}</span>
-        </li>
-      ))}
-    </ul>
   )
 }
 
@@ -546,65 +617,9 @@ function Overlay({ team, rosterById, names, run }) {
   )
 }
 
-// ---- Rule check ----
-
-function RuleCheck({ encounters, rosterById, families, gen, team }) {
-  const conflicts = Object.keys(typeConflicts(encounters, rosterById, gen)).length
-  const caught = catches(encounters)
-  const famCount = {}
-  for (const c of caught) {
-    const f = families[rosterById[c.id]?.dex] ?? c.id
-    famCount[f] = (famCount[f] ?? 0) + 1
-  }
-  const dupes = Object.values(famCount).filter((n) => n > 1).length
-  const checks = [
-    ['Team has at most 6 pairs', team.length <= TEAM_SIZE, `${team.length} pairs`],
-    ['No shared primary types on the team', conflicts === 0, conflicts ? `${conflicts} pairs clash` : 'All different'],
-    ['Dupes clause: one catch per evolution line', dupes === 0, dupes ? `${dupes} lines caught twice` : 'No dupes'],
-    ['Both partners of a pair share a fate', true, 'Built in: one status per pair'],
-  ]
-  return (
-    <ul className="checks">
-      {checks.map(([label, ok, detail]) => (
-        <li key={label} className={ok ? 'ok' : 'bad'}>
-          <span className="check-mark" aria-hidden="true">{ok ? '✓' : '!'}</span>
-          <span>{label}</span>
-          <span className="status small-print">{detail}</span>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-// ---- Free primary types ----
-
-function FreeTypes({ encounters, rosterById, gen }) {
-  const used = teamPrimaryTypes(encounters, rosterById, gen)
-  // Types that didn't exist yet in this generation are left out (Dark/Steel < II, Fairy < VI).
-  const exists = (t) => !((t === 'dark' || t === 'steel') && gen < 2) && !(t === 'fairy' && gen < 6)
-  const types = Object.keys(TYPE_COLORS).filter(exists)
-  return (
-    <>
-      <div className="free-types">
-        {types.map((t) => (
-          <span key={t} className={used.has(t) ? 'free-type taken' : 'free-type'} style={{ '--type-color': TYPE_COLORS[t] }}>
-            {displayName(t)}
-          </span>
-        ))}
-      </div>
-      <p className="status small-print">{types.length - used.size} of {types.length} primary types still free. Crossed out = already a team pair’s primary type.</p>
-    </>
-  )
-}
-
 // ---- All-run stats ----
 
-function AllRunStats({ runs, rosterById }) {
-  const [byRun, setByRun] = useState(null)
-  useEffect(() => {
-    Promise.all(runs.map((r) => getEncounters(r.id))).then((lists) => setByRun(lists)).catch(() => setByRun([]))
-  }, [runs])
-  if (!byRun) return <p className="status">Loading every run…</p>
+function AllRunStats({ runs, byRun, rosterById }) {
   return (
     <div className="table-wrap">
       <table className="moves">
@@ -702,14 +717,12 @@ function Players({ encounters, rosterById, gen, names }) {
           if (t) types[t] = (types[t] ?? 0) + 1
         }
         const top = Object.entries(types).sort((a, b) => b[1] - a[1])
-        const nicknamed = mine.filter((c) => c.nickname).length
         return (
           <div key={p} className="player-col">
             <h4>{names[p]}</h4>
             <dl className="facts">
               <div><dt>Catches</dt><dd>{mine.length}</dd></div>
               <div><dt>Different primary types</dt><dd>{top.length}</dd></div>
-              <div><dt>Nicknamed</dt><dd>{mine.length ? Math.round((nicknamed / mine.length) * 100) : 0}%</dd></div>
             </dl>
             <div className="type-spread">
               {top.map(([t, n]) => <span key={t} style={{ '--type-color': TYPE_COLORS[t], flexGrow: n }} title={`${displayName(t)}: ${n}`} />)}
@@ -749,60 +762,12 @@ function ShareSummary({ run, rows, team, rosterById, names }) {
   )
 }
 
-// ---- What-if checker ----
-
-function WhatIf({ gen, rows, encounters, rosterById, families, names }) {
-  const options = useMemo(() => Object.values(rosterById).filter((e) => e.generation <= gen), [rosterById, gen])
-  const byLabel = useMemo(() => Object.fromEntries(options.map((e) => [e.label.toLowerCase(), e])), [options])
-  const [text, setText] = useState({ p1: '', p2: '' })
-  const picks = { p1: byLabel[text.p1.trim().toLowerCase()], p2: byLabel[text.p2.trim().toLowerCase()] }
-  const area = rows.find((r) => r.status === 'pending')?.area ?? 'next area'
-
-  let verdict = null
-  if (picks.p1 && picks.p2) {
-    const fake = { id: 'what-if', area: `__what-if__${area}`, status: 'pending', p1_pokemon_id: picks.p1.id, p2_pokemon_id: picks.p2.id }
-    const problems = []
-    for (const p of PLAYERS) {
-      const d = findDupes(encounters, picks[p].id, rosterById, families, { area: fake.area, player: p })
-      if (d.length) problems.push(`${names[p]}’s ${picks[p].label} is a dupe (${d.map((x) => `${names[x.player]}, ${x.area}`).join('; ')})`)
-    }
-    const teamCount = encounters.filter((e) => e.status === 'team').length
-    const clash = typeConflicts([...encounters, { ...fake, status: 'team' }], rosterById, gen)['what-if']
-    const place = teamCount >= TEAM_SIZE ? 'the PC (team is full)' : clash ? `the PC, or swap: shares ${clash.join(', ')} with a team pair` : 'the team'
-    verdict = { ok: problems.length === 0, problems, place }
-  }
-
-  return (
-    <>
-      <datalist id="whatif-mons">{options.map((e) => <option key={e.id} value={e.label} />)}</datalist>
-      <div className="whatif toolbar">
-        {PLAYERS.map((p) => (
-          <input key={p} list="whatif-mons" placeholder={`${names[p]}’s Pokémon`} aria-label={`${names[p]}’s Pokémon`} value={text[p]} onChange={(e) => setText((t) => ({ ...t, [p]: e.target.value }))} />
-        ))}
-      </div>
-      {verdict ? (
-        <div className={verdict.ok ? 'verdict ok' : 'verdict bad'}>
-          <strong>{verdict.ok ? `Allowed on ${area}` : 'Not allowed'}</strong>
-          {verdict.problems.map((p) => <span key={p} className="slot-warning">{p}</span>)}
-          {verdict.ok && <span>This pair would go to {verdict.place}.</span>}
-        </div>
-      ) : (
-        <p className="status small-print">Pick two Pokémon to see the verdict. Nothing is saved.</p>
-      )}
-    </>
-  )
-}
-
 // ---- Where did we use it? ----
 
 const FATE = { team: 'on the team', box: 'in the PC', dead: 'died', failed: 'failed', pending: 'waiting for partner' }
 
-function History({ runs, rosterById, families }) {
-  const [byRun, setByRun] = useState(null)
+function History({ runs, byRun, rosterById, families }) {
   const [text, setText] = useState('')
-  useEffect(() => {
-    Promise.all(runs.map((r) => getEncounters(r.id))).then(setByRun).catch(() => setByRun([]))
-  }, [runs])
   const options = useMemo(() => Object.values(rosterById), [rosterById])
   const pick = options.find((e) => e.label.toLowerCase() === text.trim().toLowerCase())
   const family = pick ? families[pick.dex] ?? -pick.dex : null
@@ -835,41 +800,10 @@ function History({ runs, rosterById, families }) {
   )
 }
 
-// ---- Swap suggestions ----
-
-function Swaps({ rows, encounters, rosterById, gen, names }) {
-  const teamTypes = teamPrimaryTypes(encounters, rosterById, gen)
-  const teamFull = rows.filter((r) => r.status === 'team').length >= TEAM_SIZE
-  const box = rows.filter((r) => r.status === 'box' && r.p1_pokemon_id && r.p2_pokemon_id).map((r) => {
-    const types = [...new Set(PLAYERS.map((p) => primaryType(rosterById[r[`${p}_pokemon_id`]], gen)).filter(Boolean))]
-    return { r, types, clash: types.filter((t) => teamTypes.has(t)) }
-  })
-  const fits = box.filter((b) => b.clash.length === 0)
-  if (box.length === 0) return <p className="status">No complete pairs in the PC.</p>
-  return (
-    <>
-      <p className="status">{fits.length} of {box.length} PC pairs could join without a type clash{teamFull ? ' (team is full: swap one out first)' : ''}.</p>
-      <ul className="route-mons">
-        {fits.map(({ r, types }) => (
-          <li key={r.area} className="route-mon">
-            <Mon id={r.p1_pokemon_id} size={48} /><Mon id={r.p2_pokemon_id} size={48} />
-            <div>
-              <strong>{PLAYERS.map((p) => r[`${p}_nickname`] || monName(r[`${p}_pokemon_id`], rosterById)).join(' & ')}</strong>
-              <span className="status small-print">{r.area} · {names.p1} & {names.p2}</span>
-              <span className="types">{types.map((t) => <TypeLink key={t} type={t} small />)}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </>
-  )
-}
-
 // ---- Boss prep ----
 
-function BossPrep({ run, team, gen, rosterById, names }) {
+function BossPrep({ run, team, rosterById, names, chart }) {
   const caps = LEVEL_CAPS[run.base_game]
-  const chart = useChart(gen)
   const [bossIndex, setBossIndex] = useState(0)
   const [data, setData] = useState(null) // { moves: {id: move}, learnsets: {monId: {moveId: ways}} }
   const mons = team.flatMap((r) => PLAYERS.map((p) => ({ p, area: r.area, nickname: r[`${p}_nickname`], entry: rosterById[r[`${p}_pokemon_id`]] }))).filter((m) => m.entry)
@@ -970,30 +904,3 @@ function AreaPlanner({ run, gen, rows, encounters, rosterById, families }) {
   )
 }
 
-// ---- Achievements ----
-
-function Achievements({ run, rows, team }) {
-  const used = rows.filter((r) => r.status !== 'pending').length
-  const pairs = rows.filter((r) => r.p1_pokemon_id && r.p2_pokemon_id).length
-  const dead = rows.filter((r) => r.status === 'dead').length
-  const list = [
-    ['First pair', 'Both of you caught something on one area', pairs >= 1],
-    ['Full team', `${TEAM_SIZE} pairs on the team`, team.length >= TEAM_SIZE],
-    ['Halfway', 'Half of all areas used', used >= rows.length / 2],
-    ['Collector', '25 pairs caught', pairs >= 25],
-    ['Survivor', 'Fewer than 5 deaths with 20+ pairs', pairs >= 20 && dead < 5],
-    ['Graveyard keeper', '10 fallen pairs', dead >= 10],
-    ['Champions', 'Run beaten', run.status === 'won'],
-  ]
-  return (
-    <ul className="badges">
-      {list.map(([name, how, got]) => (
-        <li key={name} className={got ? 'got' : ''}>
-          <span className="badge-icon" aria-hidden="true">{got ? '★' : '☆'}</span>
-          <strong>{name}</strong>
-          <span className="status small-print">{how}</span>
-        </li>
-      ))}
-    </ul>
-  )
-}
