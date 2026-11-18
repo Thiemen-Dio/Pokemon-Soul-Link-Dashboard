@@ -147,29 +147,28 @@
 }
 .bp-block:hover .gen-bg.all-starters { opacity: 0.55; }
 
-/* --- "All types" chosen: 18 tilted stripes in two rows of 9, faded over the dark block,
-       gliding slowly left to right. The track holds three identical sets (one left of the
-       block, one in it, one right of it) and moves one set-width per loop, so it never jumps. --- */
+/* --- "All types" chosen: one lane of 18 tilted stripes, faded over the dark block,
+       gliding slowly left to right. A set (18 stripes) is wider than the block, so two copies
+       are enough: the track starts one set to the left and moves one set-width per loop. --- */
 .all-stripes { position: absolute; inset: 0; opacity: 0.7; pointer-events: none; }
 .stripes-track {
+  --stripe-w: 4rem;
+  --set-w: calc(18 * var(--stripe-w));
   position: absolute;
   top: 0;
   bottom: 0;
-  left: -100%;
-  width: 300%;
+  left: calc(-1 * var(--set-w));
   display: flex;
-  animation: stripes-glide 60s linear infinite;
+  animation: stripes-glide 140s linear infinite; /* about 8px a second */
 }
 @keyframes stripes-glide {
   from { transform: translateX(0); }
-  to { transform: translateX(calc(100% / 3)); }
+  to { transform: translateX(var(--set-w)); }
 }
 .stripes-set {
   --lean: -18deg; /* negative skew = the top leans to the right */
-  flex: 0 0 calc(100% / 3);
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
-  grid-template-rows: repeat(2, 1fr);
+  grid-template-columns: repeat(18, var(--stripe-w));
 }
 .stripe {
   display: grid;
@@ -178,7 +177,7 @@
   box-shadow: inset -1px -1px 0 rgb(0 0 0 / 0.1);
 }
 /* Symbols stay upright inside the leaning stripes. */
-.stripe-icon { width: 1.5rem; height: 1.5rem; transform: skewX(calc(-1 * var(--lean))); }
+.stripe-icon { width: 1.9rem; height: 1.9rem; transform: skewX(calc(-1 * var(--lean))); }
 .bp-block.all-types-stripes:hover .all-stripes { opacity: 0.85; }
 .all-label { position: relative; font-size: 2rem; }
 

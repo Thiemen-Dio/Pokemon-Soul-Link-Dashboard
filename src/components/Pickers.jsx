@@ -70,13 +70,13 @@ const STRIPES = Object.keys(TYPE_COLORS).map((t) => {
   return { t, soft, deep: `color-mix(in srgb, ${soft} 72%, black)` }
 })
 
-/** "All types" chosen: the 18 tilted type stripes (two rows of 9) slide slowly left to right.
-    Three identical copies side by side, so the loop is seamless. */
+/** "All types" chosen: one lane of 18 tilted type stripes sliding slowly left to right.
+    Two identical copies side by side, so the loop is seamless. */
 function TypeStripes() {
   return (
     <span className="all-stripes" aria-hidden="true">
       <span className="stripes-track">
-        {[0, 1, 2].map((copy) => (
+        {[0, 1].map((copy) => (
           <span key={copy} className="stripes-set">
             {STRIPES.map(({ t, soft, deep }) => (
               <span key={t} className="stripe" style={{ background: deep, color: soft }}>
