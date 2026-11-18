@@ -38,7 +38,8 @@ export default function SiteHeader() {
       <nav className="nav">
         <span className="brand">Soul Link</span>
         <NavLink to="/" end>Dashboard</NavLink>
-        <NavLink to="/pokedex">Pokédex</NavLink>      </nav>
+        <NavLink to="/pokedex">Pokédex</NavLink>
+        <NavLink to="/test">Test</NavLink>      </nav>
       {onPokedex && (
         <nav className="tabs-bar" aria-label="Pokédex sections">
           <div className="tabs">
