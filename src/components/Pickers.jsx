@@ -56,31 +56,16 @@ function AllStarters() {
   )
 }
 
-/** Mix a #rrggbb colour with white: amount 0 = unchanged, 1 = white. Returns #rrggbb. */
-export function pastel(hex, amount = 0.35) {
-  const n = parseInt(hex.slice(1), 16)
-  const mix = (v) => Math.round(v + (255 - v) * amount)
-  const [r, g, b] = [mix((n >> 16) & 255), mix((n >> 8) & 255), mix(n & 255)]
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
-}
-
-// How much black goes into a stripe (the symbol is the plain pastel colour).
-// Small, so stripe and symbol are close shades of the same colour.
-const STRIPE_DARKEN = 0.28
-
-/** All 18 types as leaning stripes in two rows of 9: a slightly darker stripe with a pastel symbol. */
-function AllTypeStripes() {
+/** "All types" chosen: a slow slideshow, one type colour + big symbol after another (CSS-timed). */
+function TypeSlideshow() {
   return (
-    <span className="all-stripes" aria-hidden="true">
-      {Object.keys(TYPE_COLORS).map((t) => {
-        const soft = pastel(TYPE_COLORS[t])
-        const deep = `color-mix(in srgb, ${soft} ${Math.round((1 - STRIPE_DARKEN) * 100)}%, black)`
-        return (
-          <span key={t} className="stripe" style={{ background: deep, color: soft }}>
-            <TypeIcon type={t} className="stripe-icon" />
-          </span>
-        )
-      })}
+    <span className="type-slides" aria-hidden="true">
+      {Object.keys(TYPE_COLORS).map((t, i) => (
+        <span key={t} className="type-slide" style={{ '--block': TYPE_COLORS[t], '--i': i }}>
+          <TypeIcon type={t} className="slide-icon" />
+          <span className="slide-name">{displayName(t)}</span>
+        </span>
+      ))}
     </span>
   )
 }
@@ -148,13 +133,13 @@ export function TypePicker({ value, onChange, title = 'Type' }) {
 
   const block = (o, { current }) => {
     if (o === all) {
-      // Chosen "all" (big block): every type as a leaning stripe, label on top.
+      // Chosen "all" (big block): slowly cycles through every type, label on top.
       if (current)
         return {
-          className: 'all all-types-stripes',
+          className: 'all all-types-slides',
           children: (
             <>
-              <AllTypeStripes />
+              <TypeSlideshow />
               <span className="all-label">All types</span>
             </>
           ),
@@ -169,12 +154,12 @@ export function TypePicker({ value, onChange, title = 'Type' }) {
         children: (
           <>
             <TypeIcon type={o.id} />
-            <span>{o.id}</span>
+            <span>{o.label}</span>
           </>
         ),
       }
     }
-    return { className: 'type-opt', style: { '--block': TYPE_COLORS[o.id] }, children: o.id }
+    return { className: 'type-opt', style: { '--block': TYPE_COLORS[o.id] }, children: o.label }
   }
 
   return (
