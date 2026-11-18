@@ -32,25 +32,13 @@ export default function SiteHeader() {
   const hidden = useHideOnScrollDown()
   const { pathname } = useLocation()
   const onPokedex = pathname.startsWith('/pokedex')
-  const [ui, setUi] = useState(document.documentElement.dataset.ui)
-
-  function toggleUi() {
-    const next = ui === 'v2' ? 'v1' : 'v2'
-    document.documentElement.dataset.ui = next
-    try { localStorage.setItem('ui', next) } catch { /* not remembered, still switches */ }
-    setUi(next)
-  }
 
   return (
     <header className={hidden ? 'site-header hidden' : 'site-header'}>
       <nav className="nav">
         <span className="brand">Soul Link</span>
         <NavLink to="/" end>Dashboard</NavLink>
-        <NavLink to="/pokedex">Pokédex</NavLink>
-        <button type="button" className="chip-button ui-toggle" onClick={toggleUi}>
-          {ui === 'v2' ? 'Classic look' : 'New look'}
-        </button>
-      </nav>
+        <NavLink to="/pokedex">Pokédex</NavLink>      </nav>
       {onPokedex && (
         <nav className="tabs-bar" aria-label="Pokédex sections">
           <div className="tabs">
