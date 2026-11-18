@@ -147,46 +147,39 @@
 }
 .bp-block:hover .gen-bg.all-starters { opacity: 0.55; }
 
-/* --- "All types" chosen: a really slow slideshow. Each type fades in, its symbol
-       drifts a little, then it fades into the next. 18 types x 4s = 72s per round. --- */
-.type-slides { position: absolute; inset: 0; pointer-events: none; }
-.type-slide {
+/* --- "All types" chosen: 18 tilted stripes in two rows of 9, faded over the dark block,
+       gliding slowly left to right. The track holds three identical sets (one left of the
+       block, one in it, one right of it) and moves one set-width per loop, so it never jumps. --- */
+.all-stripes { position: absolute; inset: 0; opacity: 0.7; pointer-events: none; }
+.stripes-track {
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: -100%;
+  width: 300%;
   display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  padding: 0.55rem 0.85rem;
-  /* Deepened type colour, so white text stays readable on light types (Electric, Ice). */
-  background: color-mix(in srgb, var(--block) 72%, #1b2130);
-  opacity: 0;
-  animation: type-slide 72s linear infinite;
-  animation-delay: calc(var(--i) * 4s);
+  animation: stripes-glide 60s linear infinite;
 }
-@keyframes type-slide {
-  0% { opacity: 0; }
-  1.5% { opacity: 1; }
-  5.6% { opacity: 1; }
-  7% { opacity: 0; }
-  100% { opacity: 0; }
+@keyframes stripes-glide {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(100% / 3)); }
 }
-/* Big faded symbol behind the label */
-.slide-icon {
-  position: absolute;
-  left: 7%;
-  top: 50%;
-  width: 7rem;
-  height: 7rem;
-  opacity: 0.3;
-  animation: slide-drift 72s linear infinite;
-  animation-delay: calc(var(--i) * 4s);
+.stripes-set {
+  --lean: -18deg; /* negative skew = the top leans to the right */
+  flex: 0 0 calc(100% / 3);
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(2, 1fr);
 }
-@keyframes slide-drift {
-  0% { transform: translateY(-50%) translateX(-0.5rem) rotate(-14deg); }
-  7% { transform: translateY(-50%) translateX(1rem) rotate(-4deg); }
-  100% { transform: translateY(-50%) translateX(1rem) rotate(-4deg); }
+.stripe {
+  display: grid;
+  place-items: center;
+  transform: skewX(var(--lean));
+  box-shadow: inset -1px -1px 0 rgb(0 0 0 / 0.1);
 }
-.slide-name { position: relative; font-size: 0.8rem; font-weight: 600; opacity: 0.85; }
+/* Symbols stay upright inside the leaning stripes. */
+.stripe-icon { width: 1.5rem; height: 1.5rem; transform: skewX(calc(-1 * var(--lean))); }
+.bp-block.all-types-stripes:hover .all-stripes { opacity: 0.85; }
 .all-label { position: relative; font-size: 2rem; }
 
 /* --- Type blocks: slightly smaller text so long names (FIGHTING, ELECTRIC) fit --- */
@@ -225,7 +218,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .bp-current, .bp-grid .bp-block { transition: opacity 0.15s !important; transform: none !important; }
-  /* No slideshow: show the first type, standing still. */
-  .type-slide, .slide-icon { animation: none; }
-  .type-slide:first-child { opacity: 1; }
+  /* Stripes stand still. */
+  .stripes-track { animation: none; }
 }

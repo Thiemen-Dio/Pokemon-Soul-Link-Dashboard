@@ -56,16 +56,36 @@ function AllStarters() {
   )
 }
 
-/** "All types" chosen: a slow slideshow, one type colour + big symbol after another (CSS-timed). */
-function TypeSlideshow() {
+/** Mix a #rrggbb colour with white: amount 0 = unchanged, 1 = white. Returns #rrggbb. */
+function pastel(hex, amount = 0.35) {
+  const n = parseInt(hex.slice(1), 16)
+  const mix = (v) => Math.round(v + (255 - v) * amount)
+  const [r, g, b] = [mix((n >> 16) & 255), mix((n >> 8) & 255), mix(n & 255)]
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
+}
+
+// One stripe per type: a slightly darkened pastel stripe with the plain pastel symbol.
+const STRIPES = Object.keys(TYPE_COLORS).map((t) => {
+  const soft = pastel(TYPE_COLORS[t])
+  return { t, soft, deep: `color-mix(in srgb, ${soft} 72%, black)` }
+})
+
+/** "All types" chosen: the 18 tilted type stripes (two rows of 9) slide slowly left to right.
+    Three identical copies side by side, so the loop is seamless. */
+function TypeStripes() {
   return (
-    <span className="type-slides" aria-hidden="true">
-      {Object.keys(TYPE_COLORS).map((t, i) => (
-        <span key={t} className="type-slide" style={{ '--block': TYPE_COLORS[t], '--i': i }}>
-          <TypeIcon type={t} className="slide-icon" />
-          <span className="slide-name">{displayName(t)}</span>
-        </span>
-      ))}
+    <span className="all-stripes" aria-hidden="true">
+      <span className="stripes-track">
+        {[0, 1, 2].map((copy) => (
+          <span key={copy} className="stripes-set">
+            {STRIPES.map(({ t, soft, deep }) => (
+              <span key={t} className="stripe" style={{ background: deep, color: soft }}>
+                <TypeIcon type={t} className="stripe-icon" />
+              </span>
+            ))}
+          </span>
+        ))}
+      </span>
     </span>
   )
 }
@@ -133,13 +153,13 @@ export function TypePicker({ value, onChange, title = 'Type' }) {
 
   const block = (o, { current }) => {
     if (o === all) {
-      // Chosen "all" (big block): slowly cycles through every type, label on top.
+      // Chosen "all" (big block): every type as a tilted stripe, slowly sliding right, label on top.
       if (current)
         return {
-          className: 'all all-types-slides',
+          className: 'all all-types-stripes',
           children: (
             <>
-              <TypeSlideshow />
+              <TypeStripes />
               <span className="all-label">All types</span>
             </>
           ),
