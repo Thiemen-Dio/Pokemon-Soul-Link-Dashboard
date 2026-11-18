@@ -45,6 +45,10 @@ Round 1: 18 Nov 2026, 18:32–18:58. Round 2 (your feedback): 18 Nov 2026, eveni
 | `src/index.css`, `src/pages/test/test.css` | Styles for all of the above; unused what-if / free types / mock styles removed |
 | `supabase/migrations/002_logins_and_run_extras.sql` | New, **not applied yet**: everyone reads, only allow-listed players write; `runs.rules`; `encounters.favorite` |
 
+### Applied (18 Nov, later)
+
+Migration `002` is **live**. The allow-list holds **only Thiemen's e-mail**, as you asked. Finn can log in and look, but can't change anything until his e-mail is added. Tested with the public key and no login: reading works, creating a run is refused. Also tightened the two functions Supabase's security check flagged.
+
 ### Still to do (needs you)
 
 1. **Make your accounts**: open the site, "No account yet? Create one", for both of you. Supabase sends a confirmation e-mail first.

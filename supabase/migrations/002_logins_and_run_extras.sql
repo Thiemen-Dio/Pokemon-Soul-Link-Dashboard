@@ -19,6 +19,11 @@ language sql stable security definer set search_path = public as $$
   );
 $$;
 
+-- Only logged-in accounts need it (the write policies below); not callable without login.
+revoke execute on function public.is_player() from public, anon;
+grant execute on function public.is_player() to authenticated;
+alter function public.touch_updated_at() set search_path = public;
+
 -- 2. Replace "anyone may do anything" with: everyone reads, players write.
 drop policy if exists "anon full access" on public.runs;
 drop policy if exists "anon full access" on public.encounters;
