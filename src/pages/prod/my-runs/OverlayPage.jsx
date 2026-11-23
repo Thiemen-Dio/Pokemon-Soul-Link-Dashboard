@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { spriteUrl } from '../../../api/pokeapi.js'
 import { getEncounters, getRuns, subscribeToRun } from '../../../api/soullink.js'
-import './dashboard.css'
+import './my-runs.css'
 
 export default function OverlayPage() {
   const [run, setRun] = useState(null)

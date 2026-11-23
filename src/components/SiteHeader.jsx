@@ -39,7 +39,7 @@ export default function SiteHeader({ email }) {
       <nav className="nav">
         <span className="brand">Soul Link</span>
         <NavLink to="/" end>Home</NavLink>
-        <NavLink to="/dashboard">Dashboard</NavLink>
+        <NavLink to="/my-runs">My runs</NavLink>
         <NavLink to="/pokedex">Pokédex</NavLink>
         <NavLink to="/release-notes">Release notes</NavLink>
         <NavLink to="/test">Test</NavLink>

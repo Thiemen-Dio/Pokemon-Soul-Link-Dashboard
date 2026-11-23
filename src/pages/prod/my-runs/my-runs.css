@@ -1,4 +1,4 @@
-/* Dashboard (prod). */
+/* My runs (prod). */
 .dash-page .page-head { margin-bottom: 0.25rem; }
 .dash-jump { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 1rem 0 1.5rem; }
 .dash-jump a {

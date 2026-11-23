@@ -1,4 +1,4 @@
-/* Test playground. Starts as a copy of prod's dashboard.css.
+/* Test playground. Starts as a copy of prod's my-runs.css.
    This file only loads when /test is opened, but then it applies to the whole page,
    so put every changed rule under .test-page (e.g. ".test-page .planner-mon") to keep prod untouched. */
 .test-page .page-head { margin-bottom: 0.25rem; }

@@ -1,4 +1,5 @@
-// Dashboard: /dashboard = home across all runs, /dashboard/run/:name = one run.
+// My runs: /my-runs = the current run, a new run and every run; /my-runs/:name = one run.
+// RunsOverview (news, history, all runs side by side, Hall of Fame) is shown on the Home page.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { chartForGeneration, defensiveMatchups, displayName, getTypeData, spriteUrl, TYPE_COLORS } from '../../../api/pokeapi.js'
@@ -14,10 +15,10 @@ import Medals, { overallAchievements, runAchievements } from './Achievements.jsx
 import NewRunButton from './RunSetup.jsx'
 import TeamPlanner from './TeamPlanner.jsx'
 import MonCard from './MonCard.jsx'
-import './dashboard.css'
+import './my-runs.css'
 
 const RUN_STATE = { active: 'In progress', won: 'Beaten', lost: 'Lost' }
-const runLink = (r) => `/dashboard/run/${encodeURIComponent(r.name)}`
+const runLink = (r) => `/my-runs/${encodeURIComponent(r.name)}`
 
 /** Pokémon data every page needs: roster (names, Gen types) and evolution families. */
 function usePokemonData() {
@@ -31,34 +32,32 @@ function usePokemonData() {
   return { ...data, rosterById }
 }
 
-// ================= Home: all runs =================
-
-export default function Dashboard() {
-  const { rosterById, families, error: dataError } = usePokemonData()
-  const [runs, setRuns] = useState(null)
-  const [byRun, setByRun] = useState(null)
-  const [error, setError] = useState('')
+/** Every run and its areas: { runs, byRun (encounters per run, same order), error }. */
+function useAllRuns() {
+  const [state, setState] = useState({ runs: null, byRun: null, error: '' })
   useEffect(() => {
     getRuns()
-      .then(async (list) => { setRuns(list); setByRun(await Promise.all(list.map((r) => getEncounters(r.id)))) })
-      .catch((e) => setError(e.message))
+      .then(async (runs) => setState({ runs, byRun: await Promise.all(runs.map((r) => getEncounters(r.id))), error: '' }))
+      .catch((e) => setState((s) => ({ ...s, error: e.message })))
   }, [])
-  const lastVisit = useLastVisit('home')
+  return state
+}
 
+// ================= My runs =================
+
+export default function MyRuns() {
+  const { runs, byRun, error } = useAllRuns()
   if (error) return <p className="status error">{error}</p>
   if (!runs || !byRun) return <p className="status">Loading runs…</p>
   const active = runs.find((r) => r.status === 'active') ?? runs.at(-1)
   const activeIndex = runs.indexOf(active)
-  const news = runs.flatMap((r, i) => byRun[i].filter((e) => e.p1_pokemon_id || e.p2_pokemon_id).map((e) => ({ ...e, run: r })))
-    .sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 8)
 
   return (
     <section className="dash-page">
       <div className="page-head">
-        <h2>Soul Link</h2>
+        <h2>My runs</h2>
         <NewRunButton />
       </div>
-      {dataError && <p className="status error">{dataError}</p>}
       {active && <HomeHero run={active} encounters={byRun[activeIndex]} />}
 
       <h3 className="category-title">Your runs</h3>
@@ -80,7 +79,24 @@ export default function Dashboard() {
           )
         })}
       </ul>
+    </section>
+  )
+}
 
+// ================= Overview of all runs (on the Home page) =================
+
+export function RunsOverview() {
+  const { rosterById, families, error: dataError } = usePokemonData()
+  const { runs, byRun, error } = useAllRuns()
+  const lastVisit = useLastVisit('home')
+  if (error) return <p className="status error">{error}</p>
+  if (!runs || !byRun) return <p className="status">Loading runs…</p>
+  const news = runs.flatMap((r, i) => byRun[i].filter((e) => e.p1_pokemon_id || e.p2_pokemon_id).map((e) => ({ ...e, run: r })))
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 8)
+
+  return (
+    <section className="dash-page">
+      {dataError && <p className="status error">{dataError}</p>}
       <div className="home-grid">
         <div>
           <h3 className="category-title">Latest news</h3>
@@ -105,7 +121,7 @@ export default function Dashboard() {
             <Link to="/pokedex" className="door"><strong>Pokédex</strong><span>Look up any Pokémon</span></Link>
             <Link to="/pokedex/types" className="door"><strong>Type chart</strong><span>Gen-correct matchups</span></Link>
             <Link to="/pokedex/moves" className="door"><strong>Moves</strong><span>Who learns what</span></Link>
-            <Link to="/release-notes" className="door"><strong>Release notes</strong><span>What changed in this version</span></Link>
+            <Link to="/my-runs" className="door"><strong>My runs</strong><span>The current run and every run</span></Link>
           </div>
         </div>
       </div>
@@ -174,7 +190,7 @@ const SECTIONS = [
   ['Share', [['overlay', 'Overlay'], ['share', 'Summary']]],
 ]
 
-export function DashboardRun() {
+export function RunPage() {
   const { runName } = useParams()
   const { roster, rosterById, families, error: dataError } = usePokemonData()
   const [runs, setRuns] = useState(null)
@@ -196,10 +212,10 @@ export function DashboardRun() {
 
   if (error) return <p className="status error">{error}</p>
   if (!runs) return <p className="status">Loading…</p>
-  if (!run) return <p className="status">No run called “{runName}”. <Link to="/dashboard">All runs</Link></p>
+  if (!run) return <p className="status">No run called “{runName}”. <Link to="/my-runs">All runs</Link></p>
   return (
     <section className="dash-page">
-      <Link to="/dashboard" className="back-link">← All runs</Link>
+      <Link to="/my-runs" className="back-link">← My runs</Link>
       <nav className="dash-jump" aria-label="Sections">
         {SECTIONS.map(([group, items]) => (
           <div key={group} className="jump-group">

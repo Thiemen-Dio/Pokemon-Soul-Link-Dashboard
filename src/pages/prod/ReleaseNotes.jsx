@@ -5,9 +5,9 @@ const RELEASES = [
   {
     name: 'Test to prod 1',
     date: '23 November 2026',
-    summary: 'What was built in the Test tab is now the real site. The old dashboard is replaced by a dashboard with all runs, and every run gets its own page built around the team.',
+    summary: 'What was built in the Test tab is now the real site. The old dashboard is replaced by My runs, and every run gets its own page built around the team.',
     compare: [
-      ['Start page', 'The run log of one run', 'Home (still to be built) + Dashboard with all runs'],
+      ['Start page', 'The run log of one run', 'Home (news and stats of all runs) + My runs'],
       ['Choosing a run', 'Chips at the top of the page', 'Run cards with team, progress and status; “Playing now” on top'],
       ['The team', 'A list of the pairs on the team', 'Team planner: big sprites, suggestions, item and rule checks'],
       ['Run log', 'Every area open at once', 'Folded: only the next area is open, with what can appear there'],
@@ -18,11 +18,11 @@ const RELEASES = [
     sections: [
       {
         title: 'New structure',
-        image: ['dashboard-home.png', 'The dashboard: the run you are playing, then every run with its team and a dot per area.'],
+        image: ['dashboard-home.png', 'My runs: the run you are playing, then every run with its team and a dot per area.'],
         points: [
-          'Menu: Home, Dashboard, Pokédex, Release notes, Test. The Test tab stays as the playground for new ideas; what worked there is now the real dashboard.',
-          'Home says “Home page needs to be built” for now, with doors to the rest of the site.',
-          'Dashboard: the run you are playing, cards for every run, latest news from all runs, “In which runs did we use…?”, all runs side by side and the Hall of Fame.',
+          'Menu: Home, My runs, Pokédex, Release notes, Test. The Test tab stays as the playground for new ideas; what worked there is now the real site.',
+          'My runs: the run you are playing, the New run button and cards for every run.',
+          'Home (the real home page is still to be built): latest news from all runs, “In which runs did we use…?”, all runs side by side and the Hall of Fame.',
           'New run button with the run’s rules and randomizer settings.',
           'Every page needs a login; only the two players can change anything.',
         ],
@@ -136,7 +136,7 @@ export default function ReleaseNotes() {
               )}
             </section>
           ))}
-          <p className="status small-print">Go to the <Link to="/dashboard">dashboard</Link> to try it.</p>
+          <p className="status small-print">Go to the <Link to="/my-runs">My runs</Link> to try it.</p>
         </article>
       ))}
     </section>
