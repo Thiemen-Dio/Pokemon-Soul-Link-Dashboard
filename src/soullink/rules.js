@@ -41,6 +41,21 @@ export function typeConflicts(encounters, rosterById, gen) {
 }
 
 /**
+ * Hard lock for no shared types: would this row, if on the team, share a primary type with another team pair?
+ * Returns { area, type } of the first clash, or null.
+ */
+export function teamClash(encounters, row, rosterById, gen) {
+  if (row.status !== 'team') return null
+  const mine = new Set(PLAYERS.map((p) => primaryType(rosterById[row[`${p}_pokemon_id`]], gen)).filter(Boolean))
+  for (const e of encounters) {
+    if (e.status !== 'team' || e.area === row.area) continue
+    const type = PLAYERS.map((p) => primaryType(rosterById[e[`${p}_pokemon_id`]], gen)).find((t) => mine.has(t))
+    if (type) return { area: e.area, type }
+  }
+  return null
+}
+
+/**
  * Dupes clause: earlier catches (either player) from the same evolution family.
  * Returns [{ area, player }] for every other slot holding that family.
  */

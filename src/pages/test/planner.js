@@ -114,13 +114,32 @@ export function bestTeam(pool, pinned, chart, size = TEAM_SLOTS, score = (t) => 
  * The top few different teams for a strategy, best first: the greedy pick plus
  * hill-climbs from random starts. Gives real alternatives to flip through.
  */
-export function topTeams(pool, pinned, chart, strategy, n = 5, rand = Math.random, size = TEAM_SLOTS) {
+export function topTeams(pool, pinned, chart, strategy, n = 5, rand = Math.random, size = TEAM_SLOTS, restarts = 30) {
   const score = (t) => STRATEGIES[strategy].score(t, chart)
   const found = new Map()
   const add = (t) => found.set(t.map((p) => p.area).sort().join('|'), t)
   add(bestTeam(pool, pinned, chart, size, score))
-  for (let i = 0; i < 30; i++) add(improve(randomTeam(pool, pinned, rand, size), pool, pinned.length, score))
-  return [...found.values()].sort((a, b) => score(b) - score(a)).slice(0, n)
+  for (let i = 0; i < restarts; i++) add(improve(randomTeam(pool, pinned, rand, size), pool, pinned.length, score))
+  // A fuller team always wins: averages would otherwise reward leaving a weaker pair out.
+  return [...found.values()].sort((a, b) => b.length - a.length || score(b) - score(a)).slice(0, n)
+}
+
+/**
+ * Best all-round teams: the strongest teams of every strategy, ranked on each strategy,
+ * best average rank first. So a team that is good at everything beats one that only wins one thing.
+ */
+export function bestOverall(pool, pinned, chart, n = 5, rand = Math.random, size = TEAM_SLOTS) {
+  const found = new Map()
+  for (const k of Object.keys(STRATEGIES)) {
+    for (const t of topTeams(pool, pinned, chart, k, 3, rand, size, 8)) found.set(t.map((p) => p.area).sort().join('|'), t)
+  }
+  const teams = [...found.values()]
+  const rankSum = new Map(teams.map((t) => [t, 0]))
+  for (const { score } of Object.values(STRATEGIES)) {
+    const s = new Map(teams.map((t) => [t, score(t, chart)]))
+    teams.forEach((t) => rankSum.set(t, rankSum.get(t) + teams.filter((o) => s.get(o) > s.get(t)).length))
+  }
+  return teams.sort((a, b) => b.length - a.length || rankSum.get(a) - rankSum.get(b)).slice(0, n)
 }
 
 function improve(start, pool, keep, score) {

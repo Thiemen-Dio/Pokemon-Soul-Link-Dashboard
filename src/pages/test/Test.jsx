@@ -7,7 +7,7 @@ import { getEncounters, getRuns, saveEncounter, subscribeToRun } from '../../api
 import { gameLabel } from '../../api/games.js'
 import TypeBadge from './TypeBadge.jsx'
 import { Run } from '../Home.jsx'
-import { PLAYERS, TEAM_SIZE, areaRows, primaryType } from '../../soullink/rules.js'
+import { PLAYERS, TEAM_SIZE, areaRows, primaryType, teamClash } from '../../soullink/rules.js'
 import { GIFTS, LEVEL_CAPS, catches, getAreaEncounters, getNextEvolutions, locationSlug, logEncounters, logSetsFor, parseRandomizerLog, teamPrimaryTypes, timeAgo, versionOf } from './data.js'
 import { STARTERS } from '../../components/starters.js'
 import Medals, { overallAchievements, runAchievements } from './Achievements.jsx'
@@ -248,10 +248,13 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
 
   // Save fields on one area (favourite, a Pokémon's build, an evolution) and show it straight away.
   async function saveRow(r, changes) {
+    // Hard lock: if an evolution makes a team pair share a primary type, it goes to the PC.
+    const clash = teamClash(encounters, { ...r, ...changes }, rosterById, gen)
+    if (clash) changes = { ...changes, status: 'box' }
     try {
       const saved = await saveEncounter(run.id, r.area, r.sort_order, changes)
       setEncounters((list) => [...list.filter((e) => e.area !== saved.area), saved])
-      onError('')
+      onError(clash ? `${r.area} went to the PC: it now shares ${clash.type} with ${clash.area} on the team.` : '')
     } catch (e) {
       onError(`Couldn’t save ${r.area}: ${e.message}`)
     }

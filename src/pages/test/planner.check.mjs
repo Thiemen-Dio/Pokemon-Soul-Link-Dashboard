@@ -87,3 +87,16 @@ assert.equal(adamant.attack, 165)
 assert.equal(adamant['special-attack'], 90)
 assert.equal(withBuild(base, { nature: 'hardy' }).speed, 100)
 console.log('nature checks passed')
+
+// Best option: valid, keeps pins, and the all-rounder beats one-trick teams.
+const { bestOverall } = await import('./planner.js')
+const overall = bestOverall(pool2, [normal], chart, 5, Math.random, 2)
+assert.ok(overall.length >= 1 && overall.every((t) => isValid(t) && t[0] === normal))
+console.log('best option checks passed')
+
+// Fuller teams win: with room for 3, never suggest 2 when 3 fit.
+const weakFill = mk('X', 'normal', stats(20, 20))
+const roomy = [fastOne, tankOne, legend, weakFill]
+assert.equal(topTeams(roomy, [], chart, 'fast', 1, Math.random, 4)[0].length, 4)
+assert.equal(bestOverall(roomy, [], chart, 1, Math.random, 4)[0].length, 4)
+console.log('full team checks passed')

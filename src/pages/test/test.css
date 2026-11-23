@@ -464,3 +464,10 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
 .item-picker-wrap { display: grid; gap: 0.4rem; }
 .item-picker-wrap .tabs { justify-self: start; }
 .item-counts { margin-left: auto; color: var(--accent); font-size: 0.75rem; }
+
+/* Round 7: card header, nature + ability side by side, Best option */
+.mon-card-title { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.mon-card-title .dex-button { margin-top: 0; }
+.build-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.75rem; align-items: start; }
+.build-pair .ability-select { width: 100%; min-width: 0; }
+.planner-actions { grid-template-columns: 1fr 1fr; }

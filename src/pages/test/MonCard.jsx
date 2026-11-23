@@ -1,7 +1,7 @@
 // One caught Pokémon as it is now in the run: ability, stats with its held item, four moves, item (pinnable),
 // what it's weak to / resists, and evolving. Ability, moves and item are saved on the encounter
 // (p1_build / p2_build); evolving changes the run's Pokémon.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { defensiveMatchups, displayName, spriteUrl, TYPE_COLORS } from '../../api/pokeapi.js'
 import { getAbilities, getGames, getLearnset, getMoves, rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
 import TypeBadge from './TypeBadge.jsx'
@@ -33,6 +33,16 @@ function useMoveOptions(run, id) {
     return () => { live = false }
   }, [run.base_game, run.generation, id])
   return state
+}
+
+/** Close something (a list, a card) when the pointer goes down anywhere outside ref. */
+export function useClickOutside(ref, onClose, active) {
+  useEffect(() => {
+    if (!active) return
+    const down = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
+    document.addEventListener('pointerdown', down)
+    return () => document.removeEventListener('pointerdown', down)
+  }, [ref, onClose, active])
 }
 
 const toSaved = (m) => ({ id: m.id, name: m.name, type: m.type, power: m.power, category: m.category })
@@ -85,6 +95,9 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
   const [adding, setAdding] = useState(false) // the empty move block being typed in
   const [moveText, setMoveText] = useState('')
   const [itemsOpen, setItemsOpen] = useState(false)
+  const itemRef = useRef(null)
+  const closeItems = useMemo(() => () => setItemsOpen(false), [])
+  useClickOutside(itemRef, closeItems, itemsOpen)
   const [confirmEvo, setConfirmEvo] = useState(null)
 
   if (!id) return <div className="mon-card"><span className="mon-owner">{names[player]}</span><p className="status">Not caught yet.</p></div>
@@ -123,16 +136,19 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
         </div>
         <div>
           <span className="mon-owner">{names[player]} · {row.area} · {STATUS_TEXT[row.status]}</span>
-          <strong className="mon-card-name">{row[`${player}_nickname`] || entry?.label}</strong>
+          <div className="mon-card-title">
+            <strong className="mon-card-name">{row[`${player}_nickname`] || entry?.label}</strong>
+            <button type="button" className="chip-button dex-button" onClick={() => setDexOpen(id)}>Pokédex</button>
+          </div>
           {row[`${player}_nickname`] && <span className="status small-print">{entry?.label}</span>}
           <span className="types">{types.map((t) => <TypeBadge key={t} type={t} small />)}</span>
           {stats?.legendary && <span className="small-print">★ Legendary</span>}
-          <button type="button" className="chip-button dex-button" onClick={() => setDexOpen(id)}>Pokédex</button>
         </div>
       </div>
 
       {dexOpen && <PokemonDetail id={dexOpen} onSelect={setDexOpen} onClose={() => setDexOpen(null)} />}
 
+      <div className="build-pair">
       {gen >= 3 && (
         <div className="build-part">
           <span className="mini-label">Nature</span>
@@ -155,6 +171,7 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
           {abilityInfo && <span className="status small-print">{abilityInfo.short}</span>}
         </div>
       )}
+      </div>
 
       {evos.length > 0 && (
         <div className="evolve-row">
@@ -224,7 +241,7 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
         </datalist>
       </div>
 
-      <div className="build-part">
+      <div className="build-part" ref={itemRef}>
         <span className="mini-label">Held item</span>
         <div className="item-row">
           <button type="button" className="item-box" onClick={openItems} aria-expanded={itemsOpen} title={build.item ? itemLabel(build.item) : 'Give an item'}>

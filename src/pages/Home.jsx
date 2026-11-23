@@ -20,6 +20,7 @@ import {
   emptyEncounter,
   findDupes,
   statusAfterCatch,
+  teamClash,
   typeConflicts,
 } from '../soullink/rules.js'
 
@@ -146,10 +147,18 @@ export function Run({ run, encounters, setEncounters, roster, families, onError,
       const status = statusAfterCatch(encounters, merged)
       if (status !== row.status || !row.id) next.status = status
     }
+    // No shared primary types is a hard rule: a clashing pair can't be on the team.
+    let notice = ''
+    const clash = teamClash(encounters, { ...merged, status: next.status ?? merged.status }, rosterById, gen)
+    if (clash) {
+      if (changes.status === 'team') return onError(`${row.area} can’t join the team: it shares ${clash.type} with ${clash.area}. Take that pair off the team first.`)
+      next.status = 'box'
+      notice = `${row.area} went to the PC: it shares ${clash.type} with ${clash.area} on the team.`
+    }
     try {
       const saved = await saveEncounter(run.id, row.area, row.sort_order, next)
       setEncounters((list) => [...list.filter((e) => e.area !== saved.area), saved])
-      onError('')
+      onError(notice)
     } catch (e) {
       onError(`Couldn’t save ${row.area}: ${e.message}`)
     }

@@ -1,13 +1,13 @@
 // Team planner: both players' six side by side, built from every living pair.
 // Planning only: the run itself doesn't change.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { spriteUrl } from '../../api/pokeapi.js'
 import { rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
 import TypeBadge from './TypeBadge.jsx'
 import { PLAYERS, primaryType } from '../../soullink/rules.js'
 import { catches, getMonStats } from './data.js'
-import { STRATEGIES, TEAM_SLOTS, fits, isValid, randomTeam, scoreTeam, suggestItems, topTeams } from './planner.js'
-import MonCard from './MonCard.jsx'
+import { STRATEGIES, TEAM_SLOTS, bestOverall, fits, isValid, randomTeam, scoreTeam, suggestItems, topTeams } from './planner.js'
+import MonCard, { useClickOutside } from './MonCard.jsx'
 import { itemLabel, itemSprite } from './items.js'
 
 const pad = (areas) => [...areas, ...Array(TEAM_SLOTS).fill(null)].slice(0, TEAM_SLOTS)
@@ -37,7 +37,18 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
   const [slots, setSlots] = useState(() => pad(alive.filter((r) => r.status === 'team').map((r) => r.area)))
   const [pins, setPins] = useState(() => new Set())
   const [picking, setPicking] = useState(null)
-  const team = slots.map((a) => byArea[a]).filter(Boolean)
+  // Hard lock on shared primary types: a pair that clashes with one above it is taken off the plan
+  // (happens when the real team breaks the rule, or an evolution changes a type).
+  const [lockedOut, setLockedOut] = useState([])
+  const valid = []
+  for (const a of slots) if (a && byArea[a] && fits(valid.map((x) => byArea[x]), byArea[a])) valid.push(a)
+  const clashing = slots.filter((a) => a && byArea[a] && !valid.includes(a))
+  useEffect(() => {
+    if (clashing.length === 0) return
+    setLockedOut(clashing.map((a) => ({ area: a, with: valid.find((v) => byArea[v].primaries.some((t) => byArea[a].primaries.includes(t))) })))
+    setSlots(pad(valid))
+  }, [clashing.join()]) // eslint-disable-line react-hooks/exhaustive-deps
+  const team = valid.map((a) => byArea[a])
   const othersThan = (i) => slots.filter((a, j) => j !== i && a).map((a) => byArea[a]).filter(Boolean)
   const pinned = () => slots.filter((a) => a && pins.has(a)).map((a) => byArea[a]).filter(Boolean)
 
@@ -50,13 +61,18 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
     setViewing(null)
   }
   const [viewing, setViewing] = useState(null) // { area, player }: whose card is open
+  const openRow = useRef(null)
+  const closeCard = useMemo(() => () => setViewing(null), [])
+  useClickOutside(openRow, closeCard, !!viewing)
   const togglePin = (area) => setPins((p) => { const n = new Set(p); n.has(area) ? n.delete(area) : n.add(area); return n })
-  const fill = (t) => { setSlots(pad(t.map((p) => p.area))); setPicking(null) }
+  const fill = (t) => { setSlots(pad(t.map((p) => p.area))); setPicking(null); setLockedOut([]) }
   // Suggestions: a strategy gives a few different teams to flip through, best first.
   const [options, setOptions] = useState(null) // { strategy, list, i }
   // Each option also hands out the unpinned items where they help that team most.
+  // 'best' = best all-round over every strategy; its items are handed out for the balanced score.
   const suggest = (strategy) => {
-    const list = topTeams(pool, pinned(), chart, strategy).map((t) => suggestItems(t, pool, chart, strategy))
+    const teams = strategy === 'best' ? bestOverall(pool, pinned(), chart) : topTeams(pool, pinned(), chart, strategy)
+    const list = teams.map((t) => suggestItems(t, pool, chart, strategy === 'best' ? 'balanced' : strategy))
     setOptions({ strategy, list, i: 0 })
     fill(list[0].team)
   }
@@ -82,7 +98,7 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
   const dupes = Object.values(famCount).filter((n) => n > 1).length
   const checks = [
     ['At most 6 pairs', team.length <= TEAM_SLOTS, `${team.length} of ${TEAM_SLOTS}`],
-    ['No shared primary types', isValid(team), isValid(team) ? 'All different' : 'Two pairs share a primary type'],
+    ['No shared primary types', isValid(team), 'Locked: a pair that shares a primary type can’t be added'],
     ['Dupes clause (whole run)', dupes === 0, dupes ? `${dupes} lines caught twice` : 'No dupes'],
     ['Partners share a fate', true, 'Pairs move together'],
   ]
@@ -90,13 +106,19 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
   return (
     <div className="planner">
       <div className="planner-board">
+        {lockedOut.length > 0 && (
+          <p className="rule-warning">
+            Taken off the plan (shares a primary type): {lockedOut.map((x) => `${x.area}${x.with ? ` (with ${x.with})` : ''}`).join(', ')}.
+            <button type="button" className="unplace" onClick={() => setLockedOut([])} aria-label="Hide">×</button>
+          </p>
+        )}
         <div className="planner-head"><strong>{names.p1}</strong><span /><strong>{names.p2}</strong></div>
         {slots.map((area, i) => {
           const pair = byArea[area]
           const open = () => { setViewing(null); setPicking(picking === i ? null : i) }
           const view = (player) => { setPicking(null); setViewing(viewing?.area === area && viewing.player === player ? null : { area, player }) }
           return (
-            <div key={i} className={picking === i ? 'planner-row picking' : 'planner-row'}>
+            <div key={i} ref={pair && viewing?.area === area ? openRow : undefined} className={picking === i ? 'planner-row picking' : 'planner-row'}>
               {pair ? (
                 <>
                   <MonTile mon={pair.mons[0]} onClick={() => view('p1')} open={viewing?.area === area && viewing.player === 'p1'} />
@@ -128,8 +150,10 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
 
       <aside className="planner-side">
         <div className="planner-actions">
+          <button type="button" className="primary-button" disabled={!chart} onClick={() => suggest('best')} aria-pressed={options?.strategy === 'best'}>Best option</button>
           <button type="button" className="chip-button" onClick={() => { setOptions(null); fill(randomTeam(pool, pinned())) }}>Randomize</button>
         </div>
+        <span className="mini-label">Or best at one thing</span>
         <div className="strategy-chips" role="group" aria-label="Suggest a team">
           {Object.entries(STRATEGIES).map(([k, st]) => (
             <button key={k} type="button" disabled={!chart} aria-pressed={options?.strategy === k} onClick={() => suggest(k)}>{st.label}</button>
@@ -138,7 +162,7 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
         {options && (
           <div className="option-flip">
             <button type="button" className="chip-button" onClick={() => flip(-1)} aria-label="Previous option">‹</button>
-            <span><strong>{STRATEGIES[options.strategy].label}</strong> <span className="status small-print">option {options.i + 1} of {options.list.length}</span></span>
+            <span><strong>{options.strategy === 'best' ? 'Best option (all-round)' : STRATEGIES[options.strategy].label}</strong> <span className="status small-print">option {options.i + 1} of {options.list.length}</span></span>
             <button type="button" className="chip-button" onClick={() => flip(1)} aria-label="Next option">›</button>
           </div>
         )}
