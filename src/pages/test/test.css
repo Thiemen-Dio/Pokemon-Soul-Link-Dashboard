@@ -384,25 +384,54 @@ a.home-hero:hover, a.home-hero:focus-visible { box-shadow: 0 0 0 3px var(--accen
 .next-pick .route-mon > div:nth-child(2) { flex: 1; }
 .pick-buttons { display: grid; gap: 0.25rem; }
 
-/* Caught Pokémon */
-.caught-dex { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 0.35rem; }
-.caught-dex button { display: grid; justify-items: center; width: 100%; padding: 0.2rem; border: 2px solid transparent; border-bottom-color: var(--s, var(--border)); border-radius: 10px; background: var(--field); color: var(--muted); font: inherit; cursor: pointer; }
-.caught-dex button:hover, .caught-dex button[aria-pressed='true'] { border-color: var(--accent); }
-.caught-dex .s-team { --s: #2f9e44; }
-.caught-dex .s-box { --s: #1c7ed6; }
-.caught-dex .s-dead { --s: #e03131; }
-.caught-dex .s-dead img, .caught-dex .s-failed img { filter: grayscale(1); opacity: 0.6; }
-.caught-dex .s-failed { --s: #868e96; }
-.pair-detail { margin-top: 1rem; padding: 1rem; border-radius: 14px; background: var(--field); }
-.pair-detail > p { margin: 0 0 0.6rem; }
-.pair-detail-mons { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
-.pair-mon { display: grid; gap: 0.3rem; align-content: start; padding: 0.8rem; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); }
-.pair-mon.picked { border-color: var(--accent); }
-.anim-stage { display: grid; place-items: center; height: 120px; }
-.anim-stage img { max-height: 110px; image-rendering: pixelated; transform: scale(1.4); }
 /* Folded rows stay one line on phones: area, two names, no status text. */
 @media (max-width: 800px) {
   .encounter-row.folded { grid-template-columns: 6.5rem 1fr 1fr; gap: 0.4rem; font-size: 0.85rem; }
   .encounter-row.folded > :nth-child(n + 4) { display: none; }
   .encounter-row.folded .area-name { grid-column: auto; }
 }
+
+/* Round 4: Pokémon cards, PC box */
+.planner-mon.open { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); }
+.planner-mon .held { display: inline-flex; align-items: center; gap: 0.2rem; }
+.planner-link .swap { height: 1.6rem; padding: 0 0.5rem; font-size: 0.75rem; }
+.planner-card { grid-column: 1 / -1; margin: 0.2rem 0 0.5rem; }
+.item-swaps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
+.item-swaps li { display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.5rem; border-radius: 10px; background: var(--surface); font-size: 0.85rem; }
+.item-swaps li.status { background: none; padding: 0; }
+
+.mon-card { display: grid; gap: 0.75rem; align-content: start; padding: 1rem; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); }
+.mon-card.picked { border-color: var(--accent); }
+.mon-card-head { display: grid; grid-template-columns: 8rem 1fr; gap: 0.75rem; align-items: center; }
+.mon-card-head > div:last-child { display: grid; gap: 0.2rem; min-width: 0; }
+.mon-card-name { font-size: 1.3rem; }
+.anim-stage { display: grid; place-items: center; height: 120px; }
+.anim-stage img { max-height: 110px; image-rendering: pixelated; transform: scale(1.4); }
+.evolve-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.evolve-row .chip-button { display: inline-flex; align-items: center; gap: 0.3rem; height: auto; padding: 0.2rem 0.6rem; }
+.evolve-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-weight: 600; }
+.mon-card .stats tr.boosted th, .mon-card .stats tr.boosted .stat-value { color: var(--accent); font-weight: 700; }
+.build-part { display: grid; gap: 0.35rem; }
+.mini-label { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.item-row { display: flex; align-items: center; gap: 0.4rem; }
+.item-row input { flex: 1; min-width: 0; }
+.move-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
+.move-list li { display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.5rem; border-radius: 10px; background: var(--field); }
+.move-list li .status { margin-left: auto; }
+@media (max-width: 560px) { .mon-card-head { grid-template-columns: 5.5rem 1fr; } .anim-stage { height: 90px; } .anim-stage img { transform: none; } }
+
+.pc-box { list-style: none; margin: 0; padding: 0.6rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem; border-radius: 14px; background: var(--track); }
+.pc-box li { display: grid; gap: 0.15rem; justify-items: center; }
+.pc-pair { display: grid; grid-template-columns: 1fr 1fr; width: 100%; border-radius: 12px; background: var(--surface); border: 2px solid transparent; border-bottom-color: var(--s, var(--border)); position: relative; }
+.pc-pair::after { content: ''; position: absolute; left: 42%; right: 42%; top: 50%; border-top: 2px dashed color-mix(in srgb, var(--accent) 50%, transparent); pointer-events: none; }
+.pc-pair.open { border-color: var(--accent); }
+.pc-pair button { display: grid; place-items: center; padding: 0.15rem; border: 0; border-radius: 10px; background: none; cursor: pointer; }
+.pc-pair button:hover, .pc-pair button[aria-pressed='true'] { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.pc-empty { display: grid; place-items: center; width: 64px; height: 64px; color: var(--muted); font-weight: 700; }
+.pc-area { color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc-box .s-team { --s: #2f9e44; }
+.pc-box .s-box { --s: #1c7ed6; }
+.pc-box .s-dead { --s: #e03131; }
+.pc-box .s-failed { --s: #868e96; }
+.pc-box .s-dead img, .pc-box .s-failed img { filter: grayscale(1); opacity: 0.6; }
+.pair-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }

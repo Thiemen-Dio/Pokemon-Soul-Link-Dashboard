@@ -1,7 +1,16 @@
 // Team planner maths. A "pair" is one area's linked catch:
-//   { area, primaries: ['fire', 'water'], mons: [{ types: ['fire'], bst: 534 }, ...] }
+//   { area, primaries: ['fire', 'water'], mons: [{ types: ['fire'], bst: 534, stats?, item?, itemPinned?, moves? }, ...] }
+// stats = base stats; the held item's boost is applied here. moves = [{ type, power }].
 // chart[attacker][defender] = multiplier (missing = 1).
+import { withItem } from './items.js'
+
 export const TEAM_SLOTS = 6
+const statsOf = (m) => withItem(m.stats, m.item)
+// Attacking types: the damaging moves it knows, or its own types while no moves are filled in.
+const attackTypes = (m) => {
+  const hits = (m.moves ?? []).filter((x) => x.power).map((x) => x.type)
+  return hits.length ? hits : m.types
+}
 
 /** Soul Link rule: a primary type may appear in only one pair on the team. */
 export function fits(team, pair) {
@@ -20,9 +29,10 @@ export function scoreTeam(team, chart) {
   const mons = team.flatMap((p) => p.mons)
   if (mons.length === 0) return { score: 0, bst: 0, coverage: 0, weakSpots: [] }
   const types = Object.keys(chart)
-  const withBst = mons.filter((m) => m.bst)
-  const bst = withBst.length ? withBst.reduce((s, m) => s + m.bst, 0) / withBst.length : 0
-  const own = new Set(mons.flatMap((m) => m.types))
+  const total = (m) => (m.stats ? statsOf(m).bst : m.bst)
+  const withBst = mons.filter(total)
+  const bst = withBst.length ? withBst.reduce((s, m) => s + total(m), 0) / withBst.length : 0
+  const own = new Set(mons.flatMap(attackTypes))
   const coverage = types.filter((d) => [...own].some((t) => (chart[t]?.[d] ?? 1) >= 2)).length
   const weakSpots = types.map((t) => {
     const ms = mons.map((m) => multiplier(chart, t, m.types))
@@ -42,7 +52,32 @@ export function randomTeam(pool, pinned, rand = Math.random, size = TEAM_SLOTS) 
 
 const avg = (team, f) => {
   const mons = team.flatMap((p) => p.mons).filter((m) => m.stats)
-  return mons.length ? mons.reduce((s, m) => s + f(m.stats), 0) / mons.length : 0
+  return mons.length ? mons.reduce((s, m) => s + f(statsOf(m)), 0) / mons.length : 0
+}
+
+/**
+ * Hand out the items that aren't pinned, so they help this team most for the strategy:
+ * every unpinned item from all living Pokémon goes, greedily, to the team member it helps most.
+ * Returns the team with items set, and the swaps ({ item, from, to } as mon objects from the pool).
+ */
+export function suggestItems(team, pool, chart, strategy) {
+  const score = (t) => STRATEGIES[strategy].score(t, chart)
+  const bag = pool.flatMap((p) => p.mons.filter((m) => m.item && !m.itemPinned).map((m) => ({ item: m.item, from: m })))
+  let t = team.map((p) => ({ ...p, mons: p.mons.map((m) => (m.itemPinned ? m : { ...m, item: null, original: m })) }))
+  const swaps = []
+  for (const b of bag) {
+    let best = null
+    t.forEach((p, i) => p.mons.forEach((m, j) => {
+      if (m.item) return
+      const next = t.map((q, x) => (x !== i ? q : { ...q, mons: q.mons.map((n, y) => (y === j ? { ...n, item: b.item } : n)) }))
+      const s = score(next)
+      if (!best || s > best.s) best = { s, next, to: m.original ?? m }
+    }))
+    if (!best) break
+    t = best.next
+    if (best.to !== b.from) swaps.push({ item: b.item, from: b.from, to: best.to })
+  }
+  return { team: t, swaps }
 }
 
 /**

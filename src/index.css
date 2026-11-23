@@ -121,7 +121,7 @@ h3 { letter-spacing: -0.015em; }
 .toolbar input { flex: 1 1 12rem; }
 
 /* Fields: inputs and dropdowns share height, radius and focus */
-:is(.toolbar input, .toolbar select, .status-select, .run-status select, .section-head select, .slot input) {
+:is(.toolbar input, .toolbar select, .status-select, .run-status select, .section-head select, .slot input, .mon-card input) {
   height: var(--control-h);
   padding: 0 0.75rem;
   border: 1px solid var(--border);
@@ -132,7 +132,7 @@ h3 { letter-spacing: -0.015em; }
   font-size: 0.9rem;
   transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
 }
-:is(.toolbar input, .slot input):hover, select:hover { border-color: var(--border-strong); }
+:is(.toolbar input, .slot input, .mon-card input):hover, select:hover { border-color: var(--border-strong); }
 :is(input, select):focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); background-color: var(--surface); }
 /* Room for the arrow (the field rule above would otherwise shrink the right padding). */
 :is(.toolbar select, .status-select, .run-status select, .section-head select) { padding-right: 2rem; }

@@ -2,6 +2,28 @@
 
 Round 1: 18 Nov 2026, 18:32–18:58. Round 2 (your feedback): 18 Nov 2026, evening. Round 3: 23 Nov 2026. Newest round first.
 
+## Round 4: Pokémon cards and the PC box (23 Nov 2026)
+
+| Your note | What I did |
+|---|---|
+| Removing a pair should move the rest up | × now closes the gap: the pairs below move up |
+| Clicking a Pokémon shows its card (as it is now) | Click a Pokémon in the planner: its card opens under the row. Animated sprite, types, stats **with its held item** (boosted stats in red), moves, item. Swapping a pair moved to its own **Swap** button |
+| Add moves and an item | Up to 4 moves (moves it can learn in this game come first, marked "learns it"). Held item: pick from the list or type any item. **Saved in the database** (new columns `p1_build` / `p2_build`, migration 003, live), so you both see them |
+| Keep moves and items in mind for the best options | Damaging moves count for coverage instead of the Pokémon's own types. Known items change the stats (Choice Scarf ×1.5 Speed, Eviolite ×1.5 defences, Life Orb, Assault Vest, Leftovers, type boosters…). Each option also hands out the unpinned items where they help that team most and lists the moves ("Choice Scarf: Raichu → Slowbro") |
+| Items pinnable | Pin in the card: a pinned item stays on that Pokémon in every suggestion |
+| Evolve in the card | "Evolve into …" (only evolutions that exist in the run's generation), with a confirm step. It changes the run's Pokémon, so types, BST and everything else follow |
+| PC box: all caught pairs as sprites | New **PC box** right under the run log: every pair as linked sprites (filters All / Alive / Team / PC / Dead). Click either Pokémon: both partners' cards side by side, same cards as the planner |
+
+### Limits (round 4)
+- Item effects are rough multipliers, not damage maths. Eviolite counts even on a fully evolved Pokémon.
+- Items the planner doesn't know can still be typed in; they're shown but don't change the sums.
+- Item suggestions are text only: move the item in game (and in the card) yourself.
+
+### Checks (round 4)
+- Build passes; self-checks pass (added: damaging moves count for coverage, a scarf raises the "Super fast" score, an unpinned scarf moves from a PC Pokémon to the team, a pinned one stays).
+- Hidden-browser run on JetBlack (temporary preview page, login code untouched, deleted afterwards; nothing written): removing the first pair moved the others up; Paras' card shows stats, 559 moves (learnable first), 30 items for Gen 5, "Evolve into Parasect (Lv 24)" asks for confirmation (cancelled); "Super tanky" gives 2 options; PC box shows 5 pairs, Dead filter 0, clicking a pair opens both cards. No page errors; no sideways scrolling at 390 px.
+- **Not tested:** actually saving a move, item or evolution, because that would change your real run. Try one yourself.
+
 ## Round 3: run page, your feedback
 
 | Your note | What I did |

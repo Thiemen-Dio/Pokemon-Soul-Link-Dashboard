@@ -8,11 +8,12 @@ import { gameLabel } from '../../api/games.js'
 import TypeLink from '../../components/TypeLink.jsx'
 import { Run } from '../Home.jsx'
 import { PLAYERS, TEAM_SIZE, areaRows, primaryType } from '../../soullink/rules.js'
-import { GIFTS, LEVEL_CAPS, catches, getAreaEncounters, getMonStats, getNextEvolutions, locationSlug, logEncounters, logSetsFor, parseRandomizerLog, teamPrimaryTypes, timeAgo, versionOf } from './data.js'
+import { GIFTS, LEVEL_CAPS, catches, getAreaEncounters, getNextEvolutions, locationSlug, logEncounters, logSetsFor, parseRandomizerLog, teamPrimaryTypes, timeAgo, versionOf } from './data.js'
 import { STARTERS } from '../../components/starters.js'
 import Medals, { overallAchievements, runAchievements } from './Achievements.jsx'
 import NewRunButton from './RunSetup.jsx'
 import TeamPlanner from './TeamPlanner.jsx'
+import MonCard from './MonCard.jsx'
 import './test.css'
 
 const RUN_STATE = { active: 'In progress', won: 'Beaten', lost: 'Lost' }
@@ -166,8 +167,8 @@ function HomeHero({ run, encounters }) {
 
 // Jump menu, grouped like the categories on the page.
 const SECTIONS = [
-  ['Now', [['planner', 'Team planner'], ['log', 'Run log']]],
-  ['Team', [['caught', 'Caught Pokémon'], ['caps', 'Level caps'], ['prep', 'Boss prep'], ['coverage', 'Weaknesses'], ['evo', 'Evolutions']]],
+  ['Now', [['planner', 'Team planner'], ['log', 'Run log'], ['box', 'PC box']]],
+  ['Team', [['caps', 'Level caps'], ['prep', 'Boss prep'], ['coverage', 'Weaknesses'], ['evo', 'Evolutions']]],
   ['Story', [['graveyard', 'Graveyard'], ['dex', 'Run Pokédex'], ['players', 'Favourite types'], ['badges', 'Achievements'], ['timeline', 'Timeline']]],
   ['Scouting', [['randolog', 'Randomizer log'], ['route', 'Route finder'], ['areas', 'Area planner']]],
   ['Share', [['overlay', 'Overlay'], ['share', 'Summary']]],
@@ -245,21 +246,24 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
   }
   const props = { run, gen, names, rows, team, encounters, roster, rosterById, families, chart, log }
 
-  async function toggleFavorite(r) {
+  // Save fields on one area (favourite, a Pokémon's build, an evolution) and show it straight away.
+  async function saveRow(r, changes) {
     try {
-      const saved = await saveEncounter(run.id, r.area, r.sort_order, { favorite: !r.favorite })
-      setEncounters((list) => list.map((e) => (e.id === saved.id ? saved : e)))
+      const saved = await saveEncounter(run.id, r.area, r.sort_order, changes)
+      setEncounters((list) => [...list.filter((e) => e.area !== saved.area), saved])
+      onError('')
     } catch (e) {
-      onError(/favorite/.test(e.message) ? 'Favourites need the database update first (supabase/migrations/002).' : e.message)
+      onError(`Couldn’t save ${r.area}: ${e.message}`)
     }
   }
+  const toggleFavorite = (r) => saveRow(r, { favorite: !r.favorite })
 
   return (
     <>
       <Category id="cat-now" title={run.name} note={`${gameLabel(run.base_game)} · Gen ${gen} types${run.randomized ? ' · Randomized' : ''} · ${names.p1} & ${names.p2}`}>
         <NextUp {...props} beaten={beaten} />
         <Card id="planner" title="Team planner" idea="Both sixes side by side. Click a slot to add a pair, pin the ones you want to keep, then pick what matters and flip through the options.">
-          <TeamPlanner {...props} />
+          <TeamPlanner {...props} onSave={saveRow} />
         </Card>
         <details id="log" className="test-card fold" open>
           <summary><h3>Run log</h3><span className="status small-print">Only the next area is open, with what can appear there. Click any other area to open it.</span></summary>
@@ -271,12 +275,12 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
             />
           </div>
         </details>
+        <Card id="box" title="PC box" idea="Every caught pair as linked sprites. Click a Pokémon for both partners’ cards: stats, moves, item, evolving.">
+          <PcBox {...props} onSave={saveRow} />
+        </Card>
       </Category>
 
       <Category id="cat-team" title="Team" note="Getting ready for the next boss.">
-        <Card id="caught" title="Caught Pokémon" idea="Every Pokémon caught in this run. Click one for its animated sprite, stats and its linked partner.">
-          <CaughtDex {...props} />
-        </Card>
         <Card id="caps" title="Level caps" idea="The bosses in order, with their ace’s level as the cap and how many of your team are weak to them. Vanilla numbers: hacks need their own list.">
           <LevelCaps {...props} beaten={beaten} setBeaten={setBeaten} />
         </Card>
@@ -607,86 +611,49 @@ function RandomizerLog({ log, setLog, rows }) {
   )
 }
 
-// ---- Caught Pokémon ----
+// ---- PC box ----
 
-const animatedUrl = (id) => spriteUrl(id).replace(/\/(\d+)\.png$/, '/other/showdown/$1.gif')
-const STAT_LABELS = { hp: 'HP', attack: 'Atk', defense: 'Def', 'special-attack': 'SpA', 'special-defense': 'SpD', speed: 'Spe' }
+const BOX_FILTERS = { all: ['All', null], alive: ['Alive', ['team', 'box']], team: ['Team', ['team']], box: ['PC', ['box']], dead: ['Dead', ['dead', 'failed']] }
 
-function CaughtDex({ rows, rosterById, names, gen }) {
-  const list = rows.flatMap((r) => PLAYERS.filter((p) => r[`${p}_pokemon_id`]).map((p) => ({ row: r, player: p, id: r[`${p}_pokemon_id`] })))
-    .sort((a, b) => (rosterById[a.id]?.dex ?? a.id) - (rosterById[b.id]?.dex ?? b.id))
-  const [open, setOpen] = useState(null) // `${area}|${player}`
-  const sel = list.find((c) => `${c.row.area}|${c.player}` === open)
-  if (list.length === 0) return <p className="status">Nothing caught yet.</p>
+/** Every caught pair as linked sprites, like a PC box. Click a pair for both Pokémon's cards. */
+function PcBox({ run, rows, rosterById, names, onSave }) {
+  const [filter, setFilter] = useState('all')
+  const [open, setOpen] = useState(null) // { area, player }
+  const pairs = rows.filter((r) => (r.p1_pokemon_id || r.p2_pokemon_id) && (!BOX_FILTERS[filter][1] || BOX_FILTERS[filter][1].includes(r.status)))
+  const sel = rows.find((r) => r.area === open?.area)
+  const label = (r, p) => r[`${p}_nickname`] || rosterById[r[`${p}_pokemon_id`]]?.label || '—'
   return (
     <>
-      <ul className="caught-dex">
-        {list.map((c) => {
-          const key = `${c.row.area}|${c.player}`
-          return (
-            <li key={key} className={`s-${c.row.status}`}>
-              <button type="button" aria-pressed={open === key} onClick={() => setOpen(open === key ? null : key)} title={`${rosterById[c.id]?.label ?? c.id} · ${names[c.player]} · ${c.row.area}`}>
-                <img className="pixel" src={spriteUrl(c.id)} alt={rosterById[c.id]?.label ?? ''} width="64" height="64" loading="lazy" />
-                <span className="small-print">{formatDex(rosterById[c.id]?.dex ?? c.id)}</span>
-              </button>
+      <div className="tabs encounter-filter" role="group" aria-label="Show pairs">
+        {Object.entries(BOX_FILTERS).map(([k, [text]]) => <button key={k} type="button" aria-pressed={filter === k} onClick={() => setFilter(k)}>{text}</button>)}
+      </div>
+      {pairs.length === 0 ? <p className="status">Nothing here yet.</p> : (
+        <ul className="pc-box">
+          {pairs.map((r) => (
+            <li key={r.area} className={`s-${r.status}`}>
+              <div className={open?.area === r.area ? 'pc-pair open' : 'pc-pair'}>
+                {PLAYERS.map((p) => (
+                  <button key={p} type="button" onClick={() => setOpen(open?.area === r.area && open.player === p ? null : { area: r.area, player: p })} title={`${label(r, p)} (${names[p]}) · ${r.area}`} aria-pressed={open?.area === r.area && open.player === p}>
+                    {r[`${p}_pokemon_id`] ? <img className="pixel" src={spriteUrl(r[`${p}_pokemon_id`])} alt={label(r, p)} width="64" height="64" loading="lazy" /> : <span className="pc-empty">?</span>}
+                  </button>
+                ))}
+              </div>
+              <span className="small-print pc-area">{r.area}</span>
             </li>
-          )
-        })}
-      </ul>
-      <p className="status small-print">Green team, blue PC, red dead, grey failed.</p>
-      {sel && <PairDetail row={sel.row} first={sel.player} rosterById={rosterById} names={names} gen={gen} />}
+          ))}
+        </ul>
+      )}
+      <p className="status small-print">Each tile is one linked pair ({names.p1} left, {names.p2} right). Green team, blue PC, red dead, grey failed.</p>
+      {sel && (
+        <div className="pair-cards">
+          {(open.player === 'p1' ? PLAYERS : [...PLAYERS].reverse()).map((p) => (
+            <MonCard key={p} run={run} row={sel} player={p} names={names} rosterById={rosterById} onSave={onSave} picked={p === open.player} />
+          ))}
+        </div>
+      )}
     </>
   )
 }
-const formatDex = (n) => `#${String(n).padStart(3, '0')}`
-
-/** The clicked Pokémon next to its linked partner: animated sprites and base stats. */
-function PairDetail({ row, first, rosterById, names, gen }) {
-  const order = first === 'p1' ? PLAYERS : [...PLAYERS].reverse()
-  const ids = order.map((p) => row[`${p}_pokemon_id`]).filter(Boolean)
-  const [stats, setStats] = useState({})
-  const key = ids.join(',')
-  useEffect(() => { getMonStats(key.split(',').map(Number)).then(setStats).catch(() => setStats({})) }, [key])
-  const total = ids.reduce((s, id) => s + (stats[id]?.bst ?? 0), 0)
-  return (
-    <div className="pair-detail">
-      <p className="status small-print">{row.area} · {STATUSES_TEXT[row.status]}{ids.length === 2 && total ? ` · together ${total} base stats` : ''}</p>
-      <div className="pair-detail-mons">
-        {order.map((p) => {
-          const id = row[`${p}_pokemon_id`]
-          const entry = rosterById[id]
-          const s = stats[id]
-          return (
-            <div key={p} className={p === first ? 'pair-mon picked' : 'pair-mon'}>
-              <span className="mon-owner">{names[p]}{p !== first && ' · linked partner'}</span>
-              {!id ? <p className="status">Not caught yet.</p> : (
-                <>
-                  <div className="anim-stage">
-                    <img src={animatedUrl(id)} alt={entry?.label ?? ''} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = spriteUrl(id) }} />
-                  </div>
-                  <strong>{row[`${p}_nickname`] || entry?.label}</strong>
-                  {row[`${p}_nickname`] && <span className="status small-print">{entry?.label}</span>}
-                  <span className="types">{entry && rosterTypesInGeneration(entry, gen).map((t) => <TypeLink key={t} type={t} small />)}</span>
-                  {s ? (
-                    <table className="stats">
-                      <tbody>
-                        {Object.entries(STAT_LABELS).map(([k, label]) => (
-                          <tr key={k}><th>{label}</th><td className="stat-value">{s[k]}</td><td className="stat-bar"><span style={{ width: `${Math.min(100, (s[k] / 255) * 100)}%` }} /></td></tr>
-                        ))}
-                        <tr className="total"><th>Total</th><td className="stat-value">{s.bst}</td><td>{s.legendary && '★ Legendary'}</td></tr>
-                      </tbody>
-                    </table>
-                  ) : <p className="status small-print">Loading stats…</p>}
-                </>
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-const STATUSES_TEXT = { team: 'on the team', box: 'in the PC', dead: 'dead', failed: 'failed', pending: 'waiting for the partner' }
 
 // ---- Level caps ----
 

@@ -1,6 +1,6 @@
 // Self-check for the team planner maths. Run: node src/pages/test/planner.check.mjs
 import assert from 'node:assert/strict'
-import { STRATEGIES, bestTeam, fits, isValid, randomTeam, scoreTeam, topTeams } from './planner.js'
+import { STRATEGIES, bestTeam, fits, isValid, randomTeam, scoreTeam, suggestItems, topTeams } from './planner.js'
 
 const chart = {
   fire: { grass: 2, water: 0.5, fire: 0.5 },
@@ -55,4 +55,20 @@ for (const k of Object.keys(STRATEGIES)) {
 assert.ok(topTeams(pool2, [], chart, 'fast', 1, Math.random, 1)[0].includes(fastOne))
 assert.ok(topTeams(pool2, [], chart, 'tank', 1, Math.random, 1)[0].includes(tankOne))
 assert.ok(topTeams(pool2, [], chart, 'legends', 1, Math.random, 1)[0].includes(legend))
+
+// Moves replace own types for coverage; items count in the stats.
+const mover = { area: 'M', primaries: ['normal'], mons: [{ types: ['normal'], moves: [{ type: 'fire', power: 90 }, { type: 'water', power: 0 }] }] }
+assert.equal(scoreTeam([mover], chart).coverage, 1, 'only the damaging fire move counts')
+const slow = mk('S', 'water', stats(50, 80))
+const scarfOnSlow = { ...slow, mons: slow.mons.map((m, i) => (i === 0 ? { ...m, item: 'choice-scarf' } : m)) }
+assert.ok(STRATEGIES.fast.score([scarfOnSlow], chart) > STRATEGIES.fast.score([slow], chart))
+// The unpinned scarf moves from a box Pokémon to the team; a pinned one stays put.
+const boxed = { ...mk('B', 'grass', stats(60, 60)) }
+boxed.mons = boxed.mons.map((m, i) => (i === 0 ? { ...m, item: 'choice-scarf' } : m))
+const { team: withItems, swaps } = suggestItems([slow], [slow, boxed], chart, 'fast')
+assert.equal(swaps.length, 1)
+assert.equal(swaps[0].from, boxed.mons[0])
+assert.ok(withItems[0].mons.some((m) => m.item === 'choice-scarf'))
+boxed.mons[0].itemPinned = true
+assert.equal(suggestItems([slow], [slow, boxed], chart, 'fast').swaps.length, 0)
 console.log('planner checks passed')

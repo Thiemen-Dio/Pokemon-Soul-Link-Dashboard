@@ -6,11 +6,13 @@ import { rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
 import TypeLink from '../../components/TypeLink.jsx'
 import { PLAYERS, primaryType } from '../../soullink/rules.js'
 import { catches, getMonStats } from './data.js'
-import { STRATEGIES, TEAM_SLOTS, fits, isValid, randomTeam, scoreTeam, topTeams } from './planner.js'
+import { STRATEGIES, TEAM_SLOTS, fits, isValid, randomTeam, scoreTeam, suggestItems, topTeams } from './planner.js'
+import MonCard from './MonCard.jsx'
+import { itemLabel, itemSprite } from './items.js'
 
 const pad = (areas) => [...areas, ...Array(TEAM_SLOTS).fill(null)].slice(0, TEAM_SLOTS)
 
-export default function TeamPlanner({ gen, names, rows, encounters, rosterById, families, chart }) {
+export default function TeamPlanner({ run, gen, names, rows, encounters, rosterById, families, chart, onSave }) {
   const alive = rows.filter((r) => (r.status === 'team' || r.status === 'box') && r.p1_pokemon_id && r.p2_pokemon_id)
   const idKey = [...new Set(alive.flatMap((r) => [r.p1_pokemon_id, r.p2_pokemon_id]))].sort((a, b) => a - b).join(',')
   const [stats, setStats] = useState({})
@@ -20,12 +22,13 @@ export default function TeamPlanner({ gen, names, rows, encounters, rosterById, 
 
   const pool = useMemo(() => alive.map((r) => ({
     area: r.area,
+    row: r,
     status: r.status,
     primaries: [...new Set(PLAYERS.map((p) => primaryType(rosterById[r[`${p}_pokemon_id`]], gen)).filter(Boolean))],
     mons: PLAYERS.map((p) => {
       const id = r[`${p}_pokemon_id`]
       const entry = rosterById[id]
-      return { id, player: p, nickname: r[`${p}_nickname`], label: entry?.label ?? `#${id}`, types: entry ? rosterTypesInGeneration(entry, gen) : [], stats: stats[id], bst: stats[id]?.bst }
+      return { id, player: p, nickname: r[`${p}_nickname`], label: entry?.label ?? `#${id}`, types: entry ? rosterTypesInGeneration(entry, gen) : [], stats: stats[id], bst: stats[id]?.bst, ...pickBuild(r[`${p}_build`]) }
     }),
   })), [rows, rosterById, gen, stats]) // eslint-disable-line react-hooks/exhaustive-deps
   const byArea = Object.fromEntries(pool.map((p) => [p.area, p]))
@@ -39,20 +42,35 @@ export default function TeamPlanner({ gen, names, rows, encounters, rosterById, 
   const pinned = () => slots.filter((a) => a && pins.has(a)).map((a) => byArea[a]).filter(Boolean)
 
   const place = (i, area) => { setSlots((s) => s.map((x, j) => (j === i ? area : x))); setPicking(null) }
-  const clear = (i) => { setPins((p) => { const n = new Set(p); n.delete(slots[i]); return n }); place(i, null) }
+  // Taking a pair off moves the ones below it up.
+  const clear = (i) => {
+    setPins((p) => { const n = new Set(p); n.delete(slots[i]); return n })
+    setSlots((s) => pad(s.filter((a, j) => j !== i && a)))
+    setPicking(null)
+    setViewing(null)
+  }
+  const [viewing, setViewing] = useState(null) // { area, player }: whose card is open
   const togglePin = (area) => setPins((p) => { const n = new Set(p); n.has(area) ? n.delete(area) : n.add(area); return n })
   const fill = (t) => { setSlots(pad(t.map((p) => p.area))); setPicking(null) }
   // Suggestions: a strategy gives a few different teams to flip through, best first.
   const [options, setOptions] = useState(null) // { strategy, list, i }
-  const suggest = (strategy) => { const list = topTeams(pool, pinned(), chart, strategy); setOptions({ strategy, list, i: 0 }); fill(list[0]) }
+  // Each option also hands out the unpinned items where they help that team most.
+  const suggest = (strategy) => {
+    const list = topTeams(pool, pinned(), chart, strategy).map((t) => suggestItems(t, pool, chart, strategy))
+    setOptions({ strategy, list, i: 0 })
+    fill(list[0].team)
+  }
   const flip = (step) => {
     const i = (options.i + step + options.list.length) % options.list.length
     setOptions({ ...options, i })
-    fill(options.list[i])
+    fill(options.list[i].team)
   }
 
   if (pool.length === 0) return <p className="status">No living pairs yet. The planner fills up as you catch pairs.</p>
-  const score = chart ? scoreTeam(team, chart) : null
+  // With a suggestion showing, its item swaps count in the numbers.
+  const shownTeam = options && options.list[options.i].team.map((p) => p.area).join() === team.map((p) => p.area).join() ? options.list[options.i].team : team
+  const swaps = shownTeam === team ? [] : options.list[options.i].swaps
+  const score = chart ? scoreTeam(shownTeam, chart) : null
 
   // Rule check, live for the plan.
   const caught = catches(encounters)
@@ -75,23 +93,30 @@ export default function TeamPlanner({ gen, names, rows, encounters, rosterById, 
         <div className="planner-head"><strong>{names.p1}</strong><span /><strong>{names.p2}</strong></div>
         {slots.map((area, i) => {
           const pair = byArea[area]
-          const open = () => setPicking(picking === i ? null : i)
+          const open = () => { setViewing(null); setPicking(picking === i ? null : i) }
+          const view = (player) => { setPicking(null); setViewing(viewing?.area === area && viewing.player === player ? null : { area, player }) }
           return (
             <div key={i} className={picking === i ? 'planner-row picking' : 'planner-row'}>
               {pair ? (
                 <>
-                  <MonCard mon={pair.mons[0]} onClick={open} />
+                  <MonTile mon={pair.mons[0]} onClick={() => view('p1')} open={viewing?.area === area && viewing.player === 'p1'} />
                   <div className="planner-link">
                     <span className="planner-area">{pair.area}</span>
                     <button type="button" className={pins.has(area) ? 'pin on' : 'pin'} aria-pressed={pins.has(area)} onClick={() => togglePin(area)} title={pins.has(area) ? 'Unpin: Randomize and Best option may replace it' : 'Pin: keep this pair'}>
                       {pins.has(area) ? 'Pinned' : 'Pin'}
                     </button>
+                    <button type="button" className="chip-button swap" onClick={open} title="Swap this pair for another">Swap</button>
                     <button type="button" className="unplace" onClick={() => clear(i)} aria-label={`Take ${pair.area} off the plan`}>×</button>
                   </div>
-                  <MonCard mon={pair.mons[1]} onClick={open} />
+                  <MonTile mon={pair.mons[1]} onClick={() => view('p2')} open={viewing?.area === area && viewing.player === 'p2'} />
                 </>
               ) : (
                 <button type="button" className="planner-empty" onClick={open}>+ Add a pair</button>
+              )}
+              {pair && viewing?.area === area && (
+                <div className="planner-card">
+                  <MonCard run={run} row={pair.row} player={viewing.player} names={names} rosterById={rosterById} onSave={onSave} picked />
+                </div>
               )}
               {picking === i && (
                 <Picker pool={pool} slots={slots} others={othersThan(i)} onPick={(a) => place(i, a)} names={names} />
@@ -116,6 +141,17 @@ export default function TeamPlanner({ gen, names, rows, encounters, rosterById, 
             <span><strong>{STRATEGIES[options.strategy].label}</strong> <span className="status small-print">option {options.i + 1} of {options.list.length}</span></span>
             <button type="button" className="chip-button" onClick={() => flip(1)} aria-label="Next option">›</button>
           </div>
+        )}
+        {swaps.length > 0 && (
+          <ul className="item-swaps">
+            {swaps.map((w, k) => (
+              <li key={k}>
+                <img src={itemSprite(w.item)} alt="" width="24" height="24" />
+                <span><strong>{itemLabel(w.item)}</strong>: {w.from.nickname || w.from.label} → {w.to.nickname || w.to.label}</span>
+              </li>
+            ))}
+            <li className="status small-print">Suggested item moves for this option. Pin an item in a Pokémon’s card to keep it where it is.</li>
+          </ul>
         )}
         <p className="status small-print">Pick what matters, then flip through the options. All keep pinned pairs and the Soul Link rules.</p>
         {score && (
@@ -147,14 +183,17 @@ export default function TeamPlanner({ gen, names, rows, encounters, rosterById, 
   )
 }
 
-function MonCard({ mon, onClick }) {
+const pickBuild = (b) => ({ item: b?.item ?? null, itemPinned: !!b?.itemPinned, moves: b?.moves ?? [] })
+
+function MonTile({ mon, onClick, open }) {
   return (
-    <button type="button" className="planner-mon" onClick={onClick} title="Swap this pair">
+    <button type="button" className={open ? 'planner-mon open' : 'planner-mon'} onClick={onClick} aria-expanded={open} title="Show this Pokémon’s card">
       <img className="pixel" src={spriteUrl(mon.id)} alt="" width="112" height="112" loading="lazy" />
       <span>
         <strong>{mon.nickname || mon.label}</strong>
         {mon.nickname && <span className="status small-print">{mon.label}</span>}
         <span className="types">{mon.types.map((t) => <TypeLink key={t} type={t} small />)}</span>
+        {mon.item && <span className="small-print held"><img src={itemSprite(mon.item)} alt="" width="20" height="20" />{itemLabel(mon.item)}{mon.itemPinned && ' · pinned'}</span>}
         {mon.stats && <span className="status small-print">BST {mon.stats.bst} · Spe {mon.stats.speed}{mon.stats.legendary && ' · ★ Legendary'}</span>}
       </span>
     </button>
