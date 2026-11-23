@@ -4,9 +4,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { defensiveMatchups, displayName, spriteUrl, TYPE_COLORS } from '../../api/pokeapi.js'
 import { getAbilities, getGames, getLearnset, getMoves, rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
-import TypeLink from '../../components/TypeLink.jsx'
-import { getMonStats, getNextEvolutions } from './data.js'
-import { HELD_ITEMS, STAT_KEYS, itemLabel, itemSprite, withItem } from './items.js'
+import TypeBadge from './TypeBadge.jsx'
+import PokemonDetail from '../../components/PokemonDetail.jsx'
+import { getHoldItems, getMonStats, getNextEvolutions } from './data.js'
+import { HELD_ITEMS, NATURES, STAT_KEYS, itemLabel, itemSprite, withBuild } from './items.js'
 
 const STAT_LABELS = { hp: 'HP', attack: 'Atk', defense: 'Def', 'special-attack': 'SpA', 'special-defense': 'SpD', speed: 'Spe' }
 const STATUS_TEXT = { team: 'on the team', box: 'in the PC', dead: 'dead', failed: 'failed', pending: 'waiting for the partner' }
@@ -23,12 +24,18 @@ function useMoveOptions(run, id) {
       const canLearn = new Set(Object.keys(learnset).map(Number))
       const list = moves.filter((m) => m.generation <= run.generation)
         .sort((a, b) => canLearn.has(b.id) - canLearn.has(a.id) || a.name.localeCompare(b.name))
-      if (live) setState({ list, canLearn })
-    })().catch(() => live && setState({ list: [], canLearn: new Set() }))
+      // Moves it knows at level 1 in this game (the last four, like the game keeps).
+      const byId = Object.fromEntries(moves.map((m) => [m.id, m]))
+      const starting = Object.entries(learnset).filter(([, ways]) => ways.some((w) => w.method === 'level-up' && w.level === 1))
+        .map(([moveId]) => byId[moveId]).filter(Boolean).slice(-4).map(toSaved)
+      if (live) setState({ list, canLearn, starting })
+    })().catch(() => live && setState({ list: [], canLearn: new Set(), starting: [] }))
     return () => { live = false }
   }, [run.base_game, run.generation, id])
   return state
 }
+
+const toSaved = (m) => ({ id: m.id, name: m.name, type: m.type, power: m.power, category: m.category })
 
 /** Abilities this Pokémon can have in the run's generation (none before Gen 3, hidden ones from Gen 5). */
 function useAbilityOptions(id, gen) {
@@ -50,7 +57,9 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
   const id = row[`${player}_pokemon_id`]
   const entry = rosterById[id]
   const build = row[`${player}_build`] ?? {}
-  const moves = build.moves ?? []
+  const [itemTab, setItemTab] = useState('held')
+  const [allItems, setAllItems] = useState(null)
+  const [dexOpen, setDexOpen] = useState(null) // Pokédex pop-up on the run page
   const types = entry ? rosterTypesInGeneration(entry, gen) : []
 
   const [stats, setStats] = useState(null)
@@ -68,6 +77,9 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
   }, [dex, gen])
   const moveOptions = useMoveOptions(run, id)
   const abilities = useAbilityOptions(id, gen)
+  // Until moves are set, it starts with its level 1 moves.
+  const starting = build.moves === undefined && moveOptions?.starting?.length > 0
+  const moves = build.moves ?? moveOptions?.starting ?? []
   const byLabel = useMemo(() => Object.fromEntries((moveOptions?.list ?? []).map((m) => [displayName(m.name).toLowerCase(), m])), [moveOptions])
 
   const [adding, setAdding] = useState(false) // the empty move block being typed in
@@ -84,11 +96,17 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
     if (!m || moves.length >= 4 || moves.some((x) => x.id === m.id)) return
     setMoveText('')
     setAdding(false)
-    saveBuild({ moves: [...moves, { id: m.id, name: m.name, type: m.type, power: m.power, category: m.category }] })
+    saveBuild({ moves: [...moves, toSaved(m)] })
+  }
+  const openItems = () => {
+    setItemsOpen((o) => !o)
+    if (!allItems) getHoldItems().then(setAllItems).catch(() => setAllItems([]))
   }
   const pickItem = (slug) => { setItemsOpen(false); saveBuild({ item: slug, itemPinned: slug ? build.itemPinned : false }) }
 
-  const eff = withItem(stats, build.item)
+  const eff = withBuild(stats, build)
+  const itemBoost = HELD_ITEMS[build.item]?.boost ?? {}
+  const [natUp, natDown] = NATURES[build.nature] ?? []
   const listId = `moves-${player}-${row.area.replace(/\W+/g, '-')}`
   // The ability it has: the saved one, or the only one it can have.
   const ability = build.ability ?? (abilities?.filter((a) => !a.hidden).length === 1 ? abilities[0].name : null)
@@ -107,10 +125,25 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
           <span className="mon-owner">{names[player]} · {row.area} · {STATUS_TEXT[row.status]}</span>
           <strong className="mon-card-name">{row[`${player}_nickname`] || entry?.label}</strong>
           {row[`${player}_nickname`] && <span className="status small-print">{entry?.label}</span>}
-          <span className="types">{types.map((t) => <TypeLink key={t} type={t} small />)}</span>
+          <span className="types">{types.map((t) => <TypeBadge key={t} type={t} small />)}</span>
           {stats?.legendary && <span className="small-print">★ Legendary</span>}
+          <button type="button" className="chip-button dex-button" onClick={() => setDexOpen(id)}>Pokédex</button>
         </div>
       </div>
+
+      {dexOpen && <PokemonDetail id={dexOpen} onSelect={setDexOpen} onClose={() => setDexOpen(null)} />}
+
+      {gen >= 3 && (
+        <div className="build-part">
+          <span className="mini-label">Nature</span>
+          <select className="ability-select" value={build.nature ?? ''} aria-label="Nature" onChange={(e) => saveBuild({ nature: e.target.value || null })}>
+            <option value="">Pick its nature…</option>
+            {Object.entries(NATURES).map(([n, [up, down]]) => (
+              <option key={n} value={n}>{displayName(n)}{up ? ` (+${STAT_LABELS[up]} −${STAT_LABELS[down]})` : ' (neutral)'}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {abilities?.length > 0 && (
         <div className="build-part">
@@ -145,19 +178,19 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
         <table className="stats">
           <tbody>
             {STAT_KEYS.map((k) => (
-              <tr key={k} className={eff[k] !== stats[k] ? 'boosted' : ''}>
-                <th>{STAT_LABELS[k]}</th>
-                <td className="stat-value">{eff[k]}</td>
+              <tr key={k} className={k === natUp ? 'nat-up' : k === natDown ? 'nat-down' : ''} title={k === natUp ? 'Raised by its nature (+10%)' : k === natDown ? 'Lowered by its nature (−10%)' : undefined}>
+                <th>{STAT_LABELS[k]}{k === natUp && ' ▲'}{k === natDown && ' ▼'}</th>
+                <td className="stat-value">{eff[k]}{itemBoost[k] && <img className="stat-item" src={itemSprite(build.item)} alt="" title={`Boosted by ${itemLabel(build.item)}`} width="18" height="18" />}</td>
                 <td className="stat-bar"><span style={{ width: `${Math.min(100, (eff[k] / 255) * 100)}%` }} /></td>
               </tr>
             ))}
-            <tr className="total"><th>Total</th><td className="stat-value">{eff.bst}</td><td className="small-print">{eff.bst !== stats.bst && `${stats.bst} + item`}</td></tr>
+            <tr className="total"><th>Total</th><td className="stat-value">{eff.bst}</td><td className="small-print">{eff.bst !== stats.bst && `base ${stats.bst}`}</td></tr>
           </tbody>
         </table>
       ) : <p className="status small-print">Loading stats…</p>}
 
       <div className="build-part">
-        <span className="mini-label">Moves</span>
+        <span className="mini-label">Moves{starting && ' · starting moves (level 1), change them freely'}</span>
         <div className="move-blocks">
           {[0, 1, 2, 3].map((i) => {
             const m = moves[i]
@@ -194,7 +227,7 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
       <div className="build-part">
         <span className="mini-label">Held item</span>
         <div className="item-row">
-          <button type="button" className="item-box" onClick={() => setItemsOpen((o) => !o)} aria-expanded={itemsOpen} title={build.item ? itemLabel(build.item) : 'Give an item'}>
+          <button type="button" className="item-box" onClick={openItems} aria-expanded={itemsOpen} title={build.item ? itemLabel(build.item) : 'Give an item'}>
             {build.item ? <img src={itemSprite(build.item)} alt={itemLabel(build.item)} width="32" height="32" /> : '+'}
           </button>
           <span>{build.item ? itemLabel(build.item) : <span className="status small-print">No item</span>}</span>
@@ -206,24 +239,33 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
           )}
         </div>
         {itemsOpen && (
-          <ul className="item-picker" onKeyDown={(e) => e.key === 'Escape' && setItemsOpen(false)}>
-            {build.item && <li><button type="button" onClick={() => pickItem(null)}><span className="item-none">×</span>No item</button></li>}
-            {Object.entries(HELD_ITEMS).filter(([, it]) => it.gen <= gen).map(([k]) => (
-              <li key={k}>
-                <button type="button" aria-pressed={build.item === k} onClick={() => pickItem(k)}>
-                  <img src={itemSprite(k)} alt="" width="28" height="28" loading="lazy" />{itemLabel(k)}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="item-picker-wrap" onKeyDown={(e) => e.key === 'Escape' && setItemsOpen(false)}>
+            <div className="tabs" role="group" aria-label="Item kind">
+              <button type="button" aria-pressed={itemTab === 'held'} onClick={() => setItemTab('held')}>Held items</button>
+              <button type="button" aria-pressed={itemTab === 'berry'} onClick={() => setItemTab('berry')}>Berries</button>
+              {build.item && <button type="button" onClick={() => pickItem(null)}>Take item off</button>}
+            </div>
+            {!allItems ? <p className="status small-print">Loading items…</p> : (
+              <ul className="item-picker">
+                {allItems.filter((it) => it.gen <= gen && it.berry === (itemTab === 'berry')).map((it) => (
+                  <li key={it.name}>
+                    <button type="button" aria-pressed={build.item === it.name} onClick={() => pickItem(it.name)} title={HELD_ITEMS[it.name] ? 'The planner counts what this item does' : itemLabel(it.name)}>
+                      <img src={itemSprite(it.name)} alt="" width="28" height="28" loading="lazy" />{itemLabel(it.name)}{HELD_ITEMS[it.name] && <span className="item-counts">★</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="status small-print">★ = the planner counts what it does. Items from Gen {gen} and earlier.</p>
+          </div>
         )}
       </div>
 
       {matchups.length > 0 && (
         <div className="build-part">
           <span className="mini-label">Defence</span>
-          <div className="def-row"><span className="small-print">Weak to</span>{weak.map((m) => <span key={m.type} className="def-chip"><TypeLink type={m.type} small />{m.multiplier === 4 && '×4'}</span>)}{weak.length === 0 && '—'}</div>
-          <div className="def-row"><span className="small-print">Resists</span>{resist.map((m) => <span key={m.type} className="def-chip"><TypeLink type={m.type} small />{m.multiplier === 0 && '×0'}</span>)}{resist.length === 0 && '—'}</div>
+          <div className="def-row"><span className="small-print">Weak to</span>{weak.map((m) => <span key={m.type} className="def-chip"><TypeBadge type={m.type} small />{m.multiplier === 4 && '×4'}</span>)}{weak.length === 0 && '—'}</div>
+          <div className="def-row"><span className="small-print">Resists</span>{resist.map((m) => <span key={m.type} className="def-chip"><TypeBadge type={m.type} small />{m.multiplier === 0 && '×0'}</span>)}{resist.length === 0 && '—'}</div>
         </div>
       )}
     </div>

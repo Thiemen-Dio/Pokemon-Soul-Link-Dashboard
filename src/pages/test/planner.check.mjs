@@ -78,3 +78,12 @@ const def = scoreTeam([pair('W', 'water', 'grass')], chart)
 assert.equal(def.resisted, 3)
 assert.ok(STRATEGIES.walls && STRATEGIES.range)
 console.log('defence checks passed')
+
+// Natures: Adamant +10% Attack −10% Sp. Atk; items stack on top.
+const { withBuild } = await import('./items.js')
+const base = { hp: 100, attack: 100, defense: 100, 'special-attack': 100, 'special-defense': 100, speed: 100 }
+const adamant = withBuild(base, { nature: 'adamant', item: 'choice-band' })
+assert.equal(adamant.attack, 165)
+assert.equal(adamant['special-attack'], 90)
+assert.equal(withBuild(base, { nature: 'hardy' }).speed, 100)
+console.log('nature checks passed')

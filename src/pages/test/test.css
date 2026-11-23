@@ -408,7 +408,6 @@ a.home-hero:hover, a.home-hero:focus-visible { box-shadow: 0 0 0 3px var(--accen
 .evolve-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .evolve-row .chip-button { display: inline-flex; align-items: center; gap: 0.3rem; height: auto; padding: 0.2rem 0.6rem; }
 .evolve-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-weight: 600; }
-.mon-card .stats tr.boosted th, .mon-card .stats tr.boosted .stat-value { color: var(--accent); font-weight: 700; }
 .build-part { display: grid; gap: 0.35rem; }
 .mini-label { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .item-row { display: flex; align-items: center; gap: 0.4rem; }
@@ -453,3 +452,15 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
 .def-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
 .def-row > .small-print:first-child { width: 4rem; color: var(--muted); }
 .def-chip { display: inline-flex; align-items: center; gap: 0.15rem; font-size: 0.75rem; font-weight: 700; }
+
+/* Round 6: nature colours, item tabs, Pokédex button */
+.mon-card .stats tr.nat-up th, .mon-card .stats tr.nat-up .stat-value { color: #e03131; font-weight: 700; }
+.mon-card .stats tr.nat-down th, .mon-card .stats tr.nat-down .stat-value { color: #1c7ed6; font-weight: 700; }
+.mon-card .stats tr.nat-up .stat-bar span { background: #e03131; }
+.mon-card .stats tr.nat-down .stat-bar span { background: #1c7ed6; }
+.stat-value { white-space: nowrap; }
+.stat-item { vertical-align: middle; margin-left: 0.15rem; }
+.dex-button { justify-self: start; height: 1.8rem; margin-top: 0.2rem; font-size: 0.8rem; }
+.item-picker-wrap { display: grid; gap: 0.4rem; }
+.item-picker-wrap .tabs { justify-self: start; }
+.item-counts { margin-left: auto; color: var(--accent); font-size: 0.75rem; }

@@ -32,12 +32,22 @@ export const STAT_KEYS = ['hp', 'attack', 'defense', 'special-attack', 'special-
 export const itemLabel = (slug) => slug.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ')
 export const itemSprite = (slug) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${slug}.png`
 
-/** Base stats with the held item's boost applied (bst = their total). */
-export function withItem(stats, item) {
+// Natures (Gen 3+): [raised stat, lowered stat], ×1.1 and ×0.9. The five neutral ones change nothing.
+export const NATURES = {
+  hardy: [], lonely: ['attack', 'defense'], brave: ['attack', 'speed'], adamant: ['attack', 'special-attack'], naughty: ['attack', 'special-defense'],
+  bold: ['defense', 'attack'], docile: [], relaxed: ['defense', 'speed'], impish: ['defense', 'special-attack'], lax: ['defense', 'special-defense'],
+  timid: ['speed', 'attack'], hasty: ['speed', 'defense'], serious: [], jolly: ['speed', 'special-attack'], naive: ['speed', 'special-defense'],
+  modest: ['special-attack', 'attack'], mild: ['special-attack', 'defense'], quiet: ['special-attack', 'speed'], bashful: [], rash: ['special-attack', 'special-defense'],
+  calm: ['special-defense', 'attack'], gentle: ['special-defense', 'defense'], sassy: ['special-defense', 'speed'], careful: ['special-defense', 'special-attack'], quirky: [],
+}
+
+/** Base stats with the nature and held item applied (bst = their total). build = { item, nature }. */
+export function withBuild(stats, build = {}) {
   if (!stats) return stats
-  const boost = HELD_ITEMS[item]?.boost ?? {}
+  const boost = HELD_ITEMS[build.item]?.boost ?? {}
+  const [up, down] = NATURES[build.nature] ?? []
   const out = { ...stats }
-  for (const k of STAT_KEYS) out[k] = Math.round(stats[k] * (boost[k] ?? 1))
+  for (const k of STAT_KEYS) out[k] = Math.round(stats[k] * (boost[k] ?? 1) * (k === up ? 1.1 : k === down ? 0.9 : 1))
   out.bst = STAT_KEYS.reduce((s, k) => s + out[k], 0)
   return out
 }

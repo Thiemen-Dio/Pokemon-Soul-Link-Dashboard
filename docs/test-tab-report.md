@@ -2,6 +2,18 @@
 
 Round 1: 18 Nov 2026, 18:32–18:58. Round 2 (your feedback): 18 Nov 2026, evening. Round 3: 23 Nov 2026. Newest round first.
 
+## Round 6: starting moves, nature, items, Pokédex button (23 Nov 2026)
+
+| Your note | What I did |
+|---|---|
+| Start with the level 1 moves | Until you change its moves, a card shows the moves it knows at level 1 in this game (last four), marked "starting moves". Any change saves the full set |
+| Types shouldn't link to the type page | On the run page, type badges are plain now (planner, cards, route finder, etc.). A **Pokédex** button on each card opens the Pokédex pop-up on top of the run; close it and you're still in the run |
+| Nature, with colouring | Nature picker (Gen 3+, 25 natures with their +/− shown). The raised stat turns red ▲, the lowered one blue ▼, and the numbers include the ×1.1 / ×0.9. The planner counts natures too |
+| Items: Held / Berries, the whole list | Item box opens two tabs, **Held items** and **Berries**, with every item from PokeAPI available in the run's generation and its picture (Gen 3: 50 held, 43 berries; Gen 5: 143 / 64). ★ marks items the planner counts. "Take item off" to clear |
+
+Checks: build and self-checks pass (added: Adamant + Choice Band → Attack 165, Sp. Atk 90). Hidden browser on Randomized Emerald → Finn's Chomp (Ariados): starting moves Poison Sting, String Shot, Constrict, Scary Face; 0 type links, 10 plain badges; 26 nature choices; 50 held items (21 counted) and 43 berries; Pokédex pop-up opens Ariados and closing it stays on the run. No page errors. Not tested: the nature colouring with a real save (picking a nature writes to the run).
+Limits: the planner only uses starting moves once they're saved (until then it uses the Pokémon's own types for attack range). The run log's open row still uses the old clickable type badges (it's shared with the main dashboard).
+
 ## Round 5: Pokémon card layout (23 Nov 2026)
 
 | Your note | What I did |

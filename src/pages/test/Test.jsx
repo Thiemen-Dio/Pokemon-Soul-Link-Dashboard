@@ -5,7 +5,7 @@ import { chartForGeneration, defensiveMatchups, displayName, getTypeData, sprite
 import { getEvolutionFamilies, getGames, getLearnset, getMoves, getTypeRoster, rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
 import { getEncounters, getRuns, saveEncounter, subscribeToRun } from '../../api/soullink.js'
 import { gameLabel } from '../../api/games.js'
-import TypeLink from '../../components/TypeLink.jsx'
+import TypeBadge from './TypeBadge.jsx'
 import { Run } from '../Home.jsx'
 import { PLAYERS, TEAM_SIZE, areaRows, primaryType } from '../../soullink/rules.js'
 import { GIFTS, LEVEL_CAPS, catches, getAreaEncounters, getNextEvolutions, locationSlug, logEncounters, logSetsFor, parseRandomizerLog, teamPrimaryTypes, timeAgo, versionOf } from './data.js'
@@ -511,7 +511,7 @@ function RouteFinder({ run, gen, rows, encounters, roster, rosterById, families,
               <div>
                 <strong>{rosterById[m.id]?.label ?? (m.name ? displayName(m.name) : `#${m.id}`)}</strong>
                 <span className="status small-print">{encounterInfo(m)}</span>
-                <span className="types">{types.map((t) => <TypeLink key={t} type={t} small />)}</span>
+                <span className="types">{types.map((t) => <TypeBadge key={t} type={t} small />)}</span>
                 {dupe && <span className="slot-warning">Dupe: {names[dupe.player]} has this line ({dupe.area})</span>}
                 {!dupe && clash && <span className="clash-tag">Primary type already on the team</span>}
               </div>
@@ -564,7 +564,7 @@ function NextEncounters({ run, gen, row, save, roster, rosterById, families, enc
               <div>
                 <strong>{entry?.label ?? (m.name ? displayName(m.name) : `#${m.id}`)}</strong>
                 {!search && <span className="status small-print">{encounterInfo(m)}</span>}
-                <span className="types">{entry && rosterTypesInGeneration(entry, gen).map((t) => <TypeLink key={t} type={t} small />)}</span>
+                <span className="types">{entry && rosterTypesInGeneration(entry, gen).map((t) => <TypeBadge key={t} type={t} small />)}</span>
                 {dupe && <span className="slot-warning">Dupe: {names[dupe.player]} has this line ({dupe.area})</span>}
               </div>
               <div className="pick-buttons">
@@ -714,7 +714,7 @@ function Coverage({ team, gen, rosterById, chart }) {
       <ul className="coverage">
         {rows.map((r) => (
           <li key={r.attacker}>
-            <TypeLink type={r.attacker} small />
+            <TypeBadge type={r.attacker} small />
             <span className="bar weak" style={{ '--n': r.weak, '--of': mons.length }} title={`${r.weak} weak`} />
             <span className="bar resist" style={{ '--n': r.resist, '--of': mons.length }} title={`${r.resist} resist`} />
             <span className="status small-print">{r.weak} weak · {r.resist} resist</span>
@@ -815,7 +815,7 @@ function AllRunStats({ runs, byRun, rosterById }) {
                 <td className="num">{caught.length}</td>
                 <td className="num">{dead}</td>
                 <td className="num">{caught.length ? `${Math.round(((caught.length - dead) / caught.length) * 100)}%` : '—'}</td>
-                <td>{topType ? <><TypeLink type={topType} small /> <span className="status small-print">×{topN}</span></> : '—'}</td>
+                <td>{topType ? <><TypeBadge type={topType} small /> <span className="status small-print">×{topN}</span></> : '—'}</td>
               </tr>
             )
           })}
@@ -1016,7 +1016,7 @@ function BossPrep({ run, team, rosterById, names, chart }) {
                 <span><strong>{m.nickname || m.entry.label}</strong> <span className="status small-print">{names[m.p]}</span></span>
                 <span className="evo-next">
                   {good.length === 0 ? <em>No super-effective level-up move by Lv {cap}</em> : good.map((g) => (
-                    <span key={g.id}><TypeLink type={g.type} small /> {displayName(g.name)} <em>{g.power} power · Lv {g.level || 'evo'}</em></span>
+                    <span key={g.id}><TypeBadge type={g.type} small /> {displayName(g.name)} <em>{g.power} power · Lv {g.level || 'evo'}</em></span>
                   ))}
                 </span>
               </li>

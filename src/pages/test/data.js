@@ -190,3 +190,26 @@ export function logEncounters(area, sets, roster) {
   }
   return Object.values(byMon).map((m) => ({ ...m, where: [...m.where].join(', ') }))
 }
+
+const HELD_CATEGORIES = ['held-items', 'choice', 'bad-held-items', 'plates', 'species-specific', 'type-enhancement', 'scarves', 'jewels', 'mega-stones', 'effort-training', 'training']
+let holdItems = null
+/** Every item a Pokémon can hold, with the generation it first appears in: [{ name, berry, gen }]. Cached. */
+export function getHoldItems() {
+  holdItems ??= fetch(GRAPHQL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: `query ($cats: [String!]) { item(where: {_or: [{itemcategory: {name: {_in: $cats}}}, {itemcategory: {itempocket: {name: {_eq: "berries"}}}}]}, order_by: {name: asc}) {
+        name itemcategory { itempocket { name } } itemgameindices(order_by: {generation_id: asc}, limit: 1) { generation_id } } }`,
+      variables: { cats: HELD_CATEGORIES },
+    }),
+  })
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`PokeAPI returned ${r.status}`))))
+    .then(({ data, errors }) => {
+      if (errors) throw new Error(errors[0].message)
+      // Items with no game data yet (newest games only) are left out.
+      return data.item.filter((i) => i.itemgameindices[0]).map((i) => ({ name: i.name, berry: i.itemcategory.itempocket.name === 'berries', gen: i.itemgameindices[0].generation_id }))
+    })
+  holdItems.catch(() => { holdItems = null })
+  return holdItems
+}

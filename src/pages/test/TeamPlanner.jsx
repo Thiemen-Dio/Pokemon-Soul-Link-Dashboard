@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { spriteUrl } from '../../api/pokeapi.js'
 import { rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
-import TypeLink from '../../components/TypeLink.jsx'
+import TypeBadge from './TypeBadge.jsx'
 import { PLAYERS, primaryType } from '../../soullink/rules.js'
 import { catches, getMonStats } from './data.js'
 import { STRATEGIES, TEAM_SLOTS, fits, isValid, randomTeam, scoreTeam, suggestItems, topTeams } from './planner.js'
@@ -165,7 +165,7 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
         {score?.weakSpots.length > 0 && (
           <div className="weak-spots">
             {score.weakSpots.slice(0, 5).map((w) => (
-              <span key={w.type}><TypeLink type={w.type} small /> {w.weak} weak, {w.resist} resist</span>
+              <span key={w.type}><TypeBadge type={w.type} small /> {w.weak} weak, {w.resist} resist</span>
             ))}
           </div>
         )}
@@ -184,7 +184,7 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
   )
 }
 
-const pickBuild = (b) => ({ item: b?.item ?? null, itemPinned: !!b?.itemPinned, moves: b?.moves ?? [] })
+const pickBuild = (b) => ({ item: b?.item ?? null, itemPinned: !!b?.itemPinned, nature: b?.nature ?? null, moves: b?.moves ?? [] })
 
 function MonTile({ mon, onClick, open }) {
   return (
@@ -193,7 +193,7 @@ function MonTile({ mon, onClick, open }) {
       <span>
         <strong>{mon.nickname || mon.label}</strong>
         {mon.nickname && <span className="status small-print">{mon.label}</span>}
-        <span className="types">{mon.types.map((t) => <TypeLink key={t} type={t} small />)}</span>
+        <span className="types">{mon.types.map((t) => <TypeBadge key={t} type={t} small />)}</span>
         {mon.item && <span className="small-print held"><img src={itemSprite(mon.item)} alt="" width="20" height="20" />{itemLabel(mon.item)}{mon.itemPinned && ' · pinned'}</span>}
         {mon.stats && <span className="status small-print">BST {mon.stats.bst} · Spe {mon.stats.speed}{mon.stats.legendary && ' · ★ Legendary'}</span>}
       </span>

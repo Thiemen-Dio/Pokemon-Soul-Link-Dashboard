@@ -1,11 +1,11 @@
 // Team planner maths. A "pair" is one area's linked catch:
-//   { area, primaries: ['fire', 'water'], mons: [{ types: ['fire'], bst: 534, stats?, item?, itemPinned?, moves? }, ...] }
-// stats = base stats; the held item's boost is applied here. moves = [{ type, power }].
+//   { area, primaries: ['fire', 'water'], mons: [{ types: ['fire'], bst: 534, stats?, item?, itemPinned?, nature?, moves? }, ...] }
+// stats = base stats; nature and held item are applied here. moves = [{ type, power }].
 // chart[attacker][defender] = multiplier (missing = 1).
-import { withItem } from './items.js'
+import { withBuild } from './items.js'
 
 export const TEAM_SLOTS = 6
-const statsOf = (m) => withItem(m.stats, m.item)
+const statsOf = (m) => withBuild(m.stats, m)
 // Attacking types: the damaging moves it knows, or its own types while no moves are filled in.
 const attackTypes = (m) => {
   const hits = (m.moves ?? []).filter((x) => x.power).map((x) => x.type)
