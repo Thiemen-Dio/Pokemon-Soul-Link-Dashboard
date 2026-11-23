@@ -322,7 +322,7 @@ a.home-hero:hover, a.home-hero:focus-visible { box-shadow: 0 0 0 3px var(--accen
 @media (max-width: 560px) {
   .planner-head, .planner-row { grid-template-columns: minmax(0, 1fr) 3.4rem minmax(0, 1fr); gap: 0.3rem; }
   .planner-mon, .planner-row > .planner-mon:last-of-type { flex-direction: column; justify-content: center; gap: 0.1rem; padding: 0.4rem; text-align: center; }
-  .planner-mon img { width: 40px; height: 40px; }
+  .planner-mon img:not(.held-icon) { width: 40px; height: 40px; }
   .planner-mon .types, .planner-row > .planner-mon:last-of-type .types { justify-content: center; flex-wrap: wrap; }
   .planner-area { display: none; }
 }
@@ -362,7 +362,7 @@ a.home-hero:hover, a.home-hero:focus-visible { box-shadow: 0 0 0 3px var(--accen
 @media (prefers-reduced-motion: reduce) { .medal.got::after, .medal.legend.got .medal-coin { animation: none; } }
 
 /* Team planner, round 3: the Pokémon are the main thing */
-.planner-mon img { width: 112px; height: 112px; margin: -0.6rem -0.3rem; flex: none; }
+.planner-mon img:not(.held-icon) { width: 112px; height: 112px; margin: -0.6rem -0.3rem; flex: none; }
 .planner-mon { min-height: 6.5rem; }
 .planner-mon strong { font-size: 1.05rem; }
 .strategy-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
@@ -371,7 +371,7 @@ a.home-hero:hover, a.home-hero:focus-visible { box-shadow: 0 0 0 3px var(--accen
 .strategy-chips button[aria-pressed='true'] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--surface)); font-weight: 600; }
 .option-flip { display: grid; grid-template-columns: auto 1fr auto; gap: 0.4rem; align-items: center; text-align: center; }
 .planner-actions { grid-template-columns: 1fr; }
-@media (max-width: 560px) { .planner-mon img { width: 72px; height: 72px; margin: -0.3rem; } }
+@media (max-width: 560px) { .planner-mon img:not(.held-icon) { width: 72px; height: 72px; margin: -0.3rem; } }
 
 /* Run log, round 3: folded rows, only the next area open */
 .encounter-row.folded { width: 100%; border: 0; border-bottom: 1px solid var(--border); background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; padding-block: 0.3rem; }
@@ -471,7 +471,7 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
 /* Round 9: nature on the stat name, item icon, items switch */
 .mon-card .stats tr.nat-up th { color: #e03131; font-weight: 700; }
 .mon-card .stats tr.nat-down th { color: #1c7ed6; font-weight: 700; }
-.held-icon { width: 24px; height: 24px; }
+.planner-mon .held-icon { width: 22px; height: 22px; margin: 0; }
 .planner-mon .held { display: none; }
 .item-row .unplace { flex: none; }
 .items-switch { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
