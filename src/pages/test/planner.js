@@ -22,24 +22,26 @@ export const isValid = (team) => team.every((p, i) => fits(team.slice(0, i), p))
 const multiplier = (chart, attacker, types) => types.reduce((m, d) => m * (chart[attacker]?.[d] ?? 1), 1)
 
 /**
- * How good a team is: average base stat total, how many types its own types hit 2×
- * (range), and weak spots (attacking types more of the team is weak to than resists).
+ * How good a team is: average base stat total, attack coverage (types its damaging moves hit 2×,
+ * own types for Pokémon without moves), defensive coverage (attacking types someone on the team
+ * resists, from its own typing) and weak spots (types more of the team is weak to than resists).
  */
 export function scoreTeam(team, chart) {
   const mons = team.flatMap((p) => p.mons)
-  if (mons.length === 0) return { score: 0, bst: 0, coverage: 0, weakSpots: [] }
+  if (mons.length === 0) return { score: 0, bst: 0, coverage: 0, resisted: 0, weakSpots: [] }
   const types = Object.keys(chart)
   const total = (m) => (m.stats ? statsOf(m).bst : m.bst)
   const withBst = mons.filter(total)
   const bst = withBst.length ? withBst.reduce((s, m) => s + total(m), 0) / withBst.length : 0
   const own = new Set(mons.flatMap(attackTypes))
   const coverage = types.filter((d) => [...own].some((t) => (chart[t]?.[d] ?? 1) >= 2)).length
+  const resisted = types.filter((t) => mons.some((m) => multiplier(chart, t, m.types) < 1)).length
   const weakSpots = types.map((t) => {
     const ms = mons.map((m) => multiplier(chart, t, m.types))
     return { type: t, weak: ms.filter((x) => x > 1).length, resist: ms.filter((x) => x < 1).length }
   }).map((w) => ({ ...w, net: w.weak - w.resist })).filter((w) => w.net >= 2).sort((a, b) => b.net - a.net)
   const penalty = weakSpots.reduce((s, w) => s + (w.net - 1), 0)
-  return { score: bst / 10 + coverage * 3 - penalty * 4, bst: Math.round(bst), coverage, weakSpots }
+  return { score: bst / 10 + coverage * 3 + resisted * 2 - penalty * 4, bst: Math.round(bst), coverage, resisted, weakSpots }
 }
 
 /** Fill the free slots at random with pairs that keep the rules. */
@@ -90,7 +92,8 @@ export const STRATEGIES = {
   safe: { label: 'Fewest weaknesses', score: (t, c) => { const s = scoreTeam(t, c); return -s.weakSpots.reduce((n, w) => n + w.net, 0) * 20 + s.score / 10 } },
   strong: { label: 'Highest base stats', score: (t, c) => scoreTeam(t, c).bst + scoreTeam(t, c).score / 100 },
   legends: { label: 'Legendaries', score: (t, c) => t.flatMap((p) => p.mons).filter((m) => m.stats?.legendary).length * 100 + scoreTeam(t, c).score },
-  range: { label: 'Most coverage', score: (t, c) => scoreTeam(t, c).coverage * 20 + scoreTeam(t, c).score / 10 },
+  range: { label: 'Best attack coverage', score: (t, c) => scoreTeam(t, c).coverage * 20 + scoreTeam(t, c).score / 10 },
+  walls: { label: 'Best defensive coverage', score: (t, c) => scoreTeam(t, c).resisted * 20 + scoreTeam(t, c).score / 10 },
   tank: { label: 'Super tanky', score: (t, c) => avg(t, (s) => s.hp + s.defense + s['special-defense']) + scoreTeam(t, c).score / 10 },
   fast: { label: 'Super fast', score: (t, c) => avg(t, (s) => s.speed) + scoreTeam(t, c).score / 10 },
   hitter: { label: 'Hardest hitters', score: (t, c) => avg(t, (s) => Math.max(s.attack, s['special-attack'])) + scoreTeam(t, c).score / 10 },

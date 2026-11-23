@@ -115,7 +115,7 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
               )}
               {pair && viewing?.area === area && (
                 <div className="planner-card">
-                  <MonCard run={run} row={pair.row} player={viewing.player} names={names} rosterById={rosterById} onSave={onSave} picked />
+                  <MonCard run={run} chart={chart} row={pair.row} player={viewing.player} names={names} rosterById={rosterById} onSave={onSave} picked />
                 </div>
               )}
               {picking === i && (
@@ -157,7 +157,8 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
         {score && (
           <dl className="planner-score">
             <div><dt>Avg. base stats</dt><dd>{score.bst || '—'}</dd></div>
-            <div><dt>Range</dt><dd>{score.coverage}/{Object.keys(chart).length}</dd></div>
+            <div title="Types the team's damaging moves hit for double damage (own types for Pokémon without moves)"><dt>Attack range</dt><dd>{score.coverage}/{Object.keys(chart).length}</dd></div>
+            <div title="Attacking types at least one team member resists, from its own typing"><dt>Defence range</dt><dd>{score.resisted}/{Object.keys(chart).length}</dd></div>
             <div><dt>Weak spots</dt><dd>{score.weakSpots.length}</dd></div>
           </dl>
         )}
@@ -177,7 +178,7 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
             </li>
           ))}
         </ul>
-        <p className="status small-print">Range = types your team’s own types hit for double damage. Plan only: set the statuses in the run log to make it real.</p>
+        <p className="status small-print">Attack range = types your damaging moves hit for double damage (own types count until moves are filled in). Defence range = attacking types someone on the team resists. Plan only: set the statuses in the run log to make it real.</p>
       </aside>
     </div>
   )

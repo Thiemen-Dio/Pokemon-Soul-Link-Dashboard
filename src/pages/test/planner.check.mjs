@@ -72,3 +72,9 @@ assert.ok(withItems[0].mons.some((m) => m.item === 'choice-scarf'))
 boxed.mons[0].itemPinned = true
 assert.equal(suggestItems([slow], [slow, boxed], chart, 'fast').swaps.length, 0)
 console.log('planner checks passed')
+
+// Defence range: own typing resisting attacks (water resists fire, water; grass resists water, grass).
+const def = scoreTeam([pair('W', 'water', 'grass')], chart)
+assert.equal(def.resisted, 3)
+assert.ok(STRATEGIES.walls && STRATEGIES.range)
+console.log('defence checks passed')

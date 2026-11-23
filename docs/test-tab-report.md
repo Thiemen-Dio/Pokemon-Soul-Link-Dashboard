@@ -2,6 +2,18 @@
 
 Round 1: 18 Nov 2026, 18:32–18:58. Round 2 (your feedback): 18 Nov 2026, evening. Round 3: 23 Nov 2026. Newest round first.
 
+## Round 5: Pokémon card layout (23 Nov 2026)
+
+| Your note | What I did |
+|---|---|
+| See and change the ability | Ability dropdown under the name, with its effect. Only abilities it can have in the run's generation (none before Gen 3, hidden ones from Gen 5). Saved with the moves and item |
+| Moves as four blocks, above items | 2×2 blocks coloured by move type (name, type, power, physical/special). Click "+ Move" to type one; × forgets it |
+| Item as a small box with a list | Small item box: click it for a list with item pictures; pick one or "No item". Pin next to it |
+| Attack and defence coverage | Planner shows **Attack range** (types your damaging moves hit 2×) and **Defence range** (attacking types someone on the team resists, from typing) separately; both count in the scores. New choice: "Best defensive coverage" ("Most coverage" is now "Best attack coverage"). The card shows what it's weak to and resists |
+| Chomp's sprite (Emerald) | Chomp is a Kyogre; its animated sprite is 234×55 px and the card enlarged every sprite 1.4× with no limit, so it spilled over the name. Sprites now fit inside their box |
+
+Checks: build and self-checks pass (added: defence range). Hidden-browser run on Randomized Emerald → Chomp: sprite fits (128×120 box), ability Drizzle with effect, 4 move blocks, move box opens and closes, item list with Gen 3 items, defence rows; also checked at phone width. No page errors. Not tested: saving (would change the real run). Typing your own item name is gone: the list only.
+
 ## Round 4: Pokémon cards and the PC box (23 Nov 2026)
 
 | Your note | What I did |

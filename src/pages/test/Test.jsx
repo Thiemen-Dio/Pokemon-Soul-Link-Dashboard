@@ -616,7 +616,7 @@ function RandomizerLog({ log, setLog, rows }) {
 const BOX_FILTERS = { all: ['All', null], alive: ['Alive', ['team', 'box']], team: ['Team', ['team']], box: ['PC', ['box']], dead: ['Dead', ['dead', 'failed']] }
 
 /** Every caught pair as linked sprites, like a PC box. Click a pair for both Pokémon's cards. */
-function PcBox({ run, rows, rosterById, names, onSave }) {
+function PcBox({ run, rows, rosterById, names, chart, onSave }) {
   const [filter, setFilter] = useState('all')
   const [open, setOpen] = useState(null) // { area, player }
   const pairs = rows.filter((r) => (r.p1_pokemon_id || r.p2_pokemon_id) && (!BOX_FILTERS[filter][1] || BOX_FILTERS[filter][1].includes(r.status)))
@@ -647,7 +647,7 @@ function PcBox({ run, rows, rosterById, names, onSave }) {
       {sel && (
         <div className="pair-cards">
           {(open.player === 'p1' ? PLAYERS : [...PLAYERS].reverse()).map((p) => (
-            <MonCard key={p} run={run} row={sel} player={p} names={names} rosterById={rosterById} onSave={onSave} picked={p === open.player} />
+            <MonCard key={p} run={run} chart={chart} row={sel} player={p} names={names} rosterById={rosterById} onSave={onSave} picked={p === open.player} />
           ))}
         </div>
       )}

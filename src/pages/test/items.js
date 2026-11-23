@@ -1,5 +1,4 @@
 // Held items the team planner understands: what they roughly do to base stats, and from which generation.
-// Any other item can still be typed in; it is shown but doesn't change the sums.
 // shortcut: flat multipliers (Leftovers ≈ +10% HP, type boosters ≈ +10% attack), upgrade to damage maths if needed.
 const ATK = { attack: 1.1, 'special-attack': 1.1 }
 const TYPE_BOOSTERS = {
@@ -30,8 +29,6 @@ export const HELD_ITEMS = {
 
 export const STAT_KEYS = ['hp', 'attack', 'defense', 'special-attack', 'special-defense', 'speed']
 
-/** Item name typed by a player → the slug used everywhere ("Choice Scarf" → "choice-scarf"). */
-export const itemSlug = (text) => text.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 export const itemLabel = (slug) => slug.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ')
 export const itemSprite = (slug) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${slug}.png`
 
