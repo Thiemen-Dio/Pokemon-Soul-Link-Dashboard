@@ -5,17 +5,17 @@ import { spriteUrl } from '../../api/pokeapi.js'
 import { rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
 import TypeLink from '../../components/TypeLink.jsx'
 import { PLAYERS, primaryType } from '../../soullink/rules.js'
-import { catches, getBaseStatTotals } from './data.js'
-import { TEAM_SLOTS, bestTeam, fits, isValid, randomTeam, scoreTeam } from './planner.js'
+import { catches, getMonStats } from './data.js'
+import { STRATEGIES, TEAM_SLOTS, fits, isValid, randomTeam, scoreTeam, topTeams } from './planner.js'
 
 const pad = (areas) => [...areas, ...Array(TEAM_SLOTS).fill(null)].slice(0, TEAM_SLOTS)
 
 export default function TeamPlanner({ gen, names, rows, encounters, rosterById, families, chart }) {
   const alive = rows.filter((r) => (r.status === 'team' || r.status === 'box') && r.p1_pokemon_id && r.p2_pokemon_id)
   const idKey = [...new Set(alive.flatMap((r) => [r.p1_pokemon_id, r.p2_pokemon_id]))].sort((a, b) => a - b).join(',')
-  const [bst, setBst] = useState({})
+  const [stats, setStats] = useState({})
   useEffect(() => {
-    getBaseStatTotals(idKey ? idKey.split(',').map(Number) : []).then(setBst).catch(() => setBst({}))
+    getMonStats(idKey ? idKey.split(',').map(Number) : []).then(setStats).catch(() => setStats({}))
   }, [idKey])
 
   const pool = useMemo(() => alive.map((r) => ({
@@ -25,9 +25,9 @@ export default function TeamPlanner({ gen, names, rows, encounters, rosterById, 
     mons: PLAYERS.map((p) => {
       const id = r[`${p}_pokemon_id`]
       const entry = rosterById[id]
-      return { id, player: p, nickname: r[`${p}_nickname`], label: entry?.label ?? `#${id}`, types: entry ? rosterTypesInGeneration(entry, gen) : [], bst: bst[id] }
+      return { id, player: p, nickname: r[`${p}_nickname`], label: entry?.label ?? `#${id}`, types: entry ? rosterTypesInGeneration(entry, gen) : [], stats: stats[id], bst: stats[id]?.bst }
     }),
-  })), [rows, rosterById, gen, bst]) // eslint-disable-line react-hooks/exhaustive-deps
+  })), [rows, rosterById, gen, stats]) // eslint-disable-line react-hooks/exhaustive-deps
   const byArea = Object.fromEntries(pool.map((p) => [p.area, p]))
 
   // Start from the run's real team.
@@ -42,6 +42,14 @@ export default function TeamPlanner({ gen, names, rows, encounters, rosterById, 
   const clear = (i) => { setPins((p) => { const n = new Set(p); n.delete(slots[i]); return n }); place(i, null) }
   const togglePin = (area) => setPins((p) => { const n = new Set(p); n.has(area) ? n.delete(area) : n.add(area); return n })
   const fill = (t) => { setSlots(pad(t.map((p) => p.area))); setPicking(null) }
+  // Suggestions: a strategy gives a few different teams to flip through, best first.
+  const [options, setOptions] = useState(null) // { strategy, list, i }
+  const suggest = (strategy) => { const list = topTeams(pool, pinned(), chart, strategy); setOptions({ strategy, list, i: 0 }); fill(list[0]) }
+  const flip = (step) => {
+    const i = (options.i + step + options.list.length) % options.list.length
+    setOptions({ ...options, i })
+    fill(options.list[i])
+  }
 
   if (pool.length === 0) return <p className="status">No living pairs yet. The planner fills up as you catch pairs.</p>
   const score = chart ? scoreTeam(team, chart) : null
@@ -95,10 +103,21 @@ export default function TeamPlanner({ gen, names, rows, encounters, rosterById, 
 
       <aside className="planner-side">
         <div className="planner-actions">
-          <button type="button" className="chip-button" onClick={() => fill(randomTeam(pool, pinned()))}>Randomize</button>
-          <button type="button" className="primary-button" disabled={!chart} onClick={() => fill(bestTeam(pool, pinned(), chart))}>Best option</button>
+          <button type="button" className="chip-button" onClick={() => { setOptions(null); fill(randomTeam(pool, pinned())) }}>Randomize</button>
         </div>
-        <p className="status small-print">Both keep pinned pairs and the Soul Link rules. Best option weighs base stats, range and weak spots.</p>
+        <div className="strategy-chips" role="group" aria-label="Suggest a team">
+          {Object.entries(STRATEGIES).map(([k, st]) => (
+            <button key={k} type="button" disabled={!chart} aria-pressed={options?.strategy === k} onClick={() => suggest(k)}>{st.label}</button>
+          ))}
+        </div>
+        {options && (
+          <div className="option-flip">
+            <button type="button" className="chip-button" onClick={() => flip(-1)} aria-label="Previous option">‹</button>
+            <span><strong>{STRATEGIES[options.strategy].label}</strong> <span className="status small-print">option {options.i + 1} of {options.list.length}</span></span>
+            <button type="button" className="chip-button" onClick={() => flip(1)} aria-label="Next option">›</button>
+          </div>
+        )}
+        <p className="status small-print">Pick what matters, then flip through the options. All keep pinned pairs and the Soul Link rules.</p>
         {score && (
           <dl className="planner-score">
             <div><dt>Avg. base stats</dt><dd>{score.bst || '—'}</dd></div>
@@ -131,12 +150,12 @@ export default function TeamPlanner({ gen, names, rows, encounters, rosterById, 
 function MonCard({ mon, onClick }) {
   return (
     <button type="button" className="planner-mon" onClick={onClick} title="Swap this pair">
-      <img className="pixel" src={spriteUrl(mon.id)} alt="" width="56" height="56" loading="lazy" />
+      <img className="pixel" src={spriteUrl(mon.id)} alt="" width="112" height="112" loading="lazy" />
       <span>
         <strong>{mon.nickname || mon.label}</strong>
         {mon.nickname && <span className="status small-print">{mon.label}</span>}
         <span className="types">{mon.types.map((t) => <TypeLink key={t} type={t} small />)}</span>
-        {mon.bst && <span className="status small-print">BST {mon.bst}</span>}
+        {mon.stats && <span className="status small-print">BST {mon.stats.bst} · Spe {mon.stats.speed}{mon.stats.legendary && ' · ★ Legendary'}</span>}
       </span>
     </button>
   )

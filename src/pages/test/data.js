@@ -121,17 +121,72 @@ function evolutionHow(e) {
 }
 
 /**
- * Base stat totals per PokeAPI pokemon id: { [id]: 525 }.
+ * Base stats and legendary flag per PokeAPI pokemon id:
+ * { [id]: { hp, attack, defense, 'special-attack', 'special-defense', speed, bst, legendary } }.
  * shortcut: today's stats (Gen 6+ buffs included), upgrade if older-gen totals matter.
  */
-export async function getBaseStatTotals(ids) {
+export async function getMonStats(ids) {
   if (ids.length === 0) return {}
-  const query = 'query ($ids: [Int!]) { pokemonstat(where: {pokemon_id: {_in: $ids}}) { pokemon_id base_stat } }'
+  const query = `query ($ids: [Int!]) { pokemon(where: {id: {_in: $ids}}) {
+    id pokemonspecy { is_legendary is_mythical } pokemonstats { base_stat stat { name } } } }`
   const r = await fetch(GRAPHQL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query, variables: { ids } }) })
   if (!r.ok) throw new Error(`PokeAPI returned ${r.status}`)
   const { data, errors } = await r.json()
   if (errors) throw new Error(errors[0].message)
-  const totals = {}
-  for (const s of data.pokemonstat) totals[s.pokemon_id] = (totals[s.pokemon_id] ?? 0) + s.base_stat
-  return totals
+  return Object.fromEntries(data.pokemon.map((p) => {
+    const stats = Object.fromEntries(p.pokemonstats.map((s) => [s.stat.name, s.base_stat]))
+    stats.bst = p.pokemonstats.reduce((t, s) => t + s.base_stat, 0)
+    stats.legendary = !!(p.pokemonspecy?.is_legendary || p.pokemonspecy?.is_mythical)
+    return [p.id, stats]
+  }))
+}
+
+// ---- Universal Pokémon Randomizer ZX log ----
+
+const words = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+const squash = (s) => s.toLowerCase().replace(/♀/g, 'f').replace(/♂/g, 'm').replace(/[^a-z0-9]/g, '')
+
+/**
+ * The "--Wild Pokemon--" section of a randomizer log: [{ name: 'Route 1 Grass/Cave', mons: [{ name, min, max }] }].
+ * Format (ZX Randomizer.java logWildPokemonChanges): "Set #1 - Route 1 Grass/Cave (rate=20)",
+ * then one line per Pokémon: "Lillipup Lv4   HP 45 …" or "Patrat Lvs 2-4   HP …".
+ */
+export function parseRandomizerLog(text) {
+  const lines = text.split(/\r?\n/)
+  const at = lines.findIndex((l) => l.trim() === '--Wild Pokemon--')
+  if (at < 0) return []
+  const sets = []
+  for (const line of lines.slice(at + 1)) {
+    if (/^--.*--$/.test(line.trim())) break
+    const head = line.match(/^Set #\d+(?: - (.*?))? \(rate=\d+\)/)
+    if (head) { sets.push({ name: head[1] ?? `Set ${sets.length + 1}`, mons: [] }); continue }
+    const mon = line.match(/^(?:\w* ?SOS: )?\s*(.+?) Lvs? ?(\d+)(?:-(\d+))?/)
+    if (mon && sets.length) sets.at(-1).mons.push({ name: mon[1].trim(), min: Number(mon[2]), max: Number(mon[3] ?? mon[2]) })
+  }
+  return sets
+}
+
+/** Sets in the log that belong to an area: "Route 1 Grass/Cave" belongs to "Route 1", not to "Route 10". */
+export function logSetsFor(area, sets) {
+  const a = words(area)
+  return sets.filter((s) => { const n = words(s.name); return n === a || n.startsWith(`${a} `) })
+}
+
+/** An area's Pokémon from the log, shaped like getAreaEncounters (where = the set, e.g. "Grass/Cave"). */
+export function logEncounters(area, sets, roster) {
+  const bySlug = {}
+  for (const e of roster) bySlug[squash(e.name)] ??= e // species come before forms, so they win
+  const byMon = {}
+  for (const s of logSetsFor(area, sets)) {
+    const where = s.name.slice(area.length).trim() || 'wild'
+    for (const m of s.mons) {
+      const e = bySlug[squash(m.name)]
+      if (!e) continue
+      const x = (byMon[e.id] ??= { id: e.id, name: e.name, dex: e.dex, min: 99, max: 0, methods: {}, where: new Set() })
+      x.min = Math.min(x.min, m.min)
+      x.max = Math.max(x.max, m.max)
+      x.where.add(where)
+    }
+  }
+  return Object.values(byMon).map((m) => ({ ...m, where: [...m.where].join(', ') }))
 }

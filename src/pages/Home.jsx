@@ -125,7 +125,11 @@ const ENCOUNTER_FILTERS = {
   dead: { label: 'Dead', statuses: ['dead'] },
 }
 
-export function Run({ run, encounters, setEncounters, roster, families, onError, onRunChange }) {
+/**
+ * compact: rows fold to one line, only the next area (or the one clicked) is open,
+ * with renderNext(row, save) shown under it. Used by the Test tab.
+ */
+export function Run({ run, encounters, setEncounters, roster, families, onError, onRunChange, compact, renderNext }) {
   const gen = run.generation
   const names = { p1: run.player1_name, p2: run.player2_name }
 
@@ -173,6 +177,24 @@ export function Run({ run, encounters, setEncounters, roster, families, onError,
   const team = rows.filter((r) => r.status === 'team')
   const count = (s) => rows.filter((r) => r.status === s).length
   const conflictCount = Object.keys(conflicts).length
+  // null = follow the next area still to catch.
+  const [openArea, setOpenArea] = useState(null)
+  const current = openArea ?? rows.find((r) => r.status === 'pending')?.area
+  const areaRow = (row) => (
+    <AreaRow
+      key={row.area}
+      row={row}
+      names={names}
+      gen={gen}
+      options={options}
+      rosterById={rosterById}
+      families={families}
+      encounters={encounters}
+      clash={conflicts[row.id]}
+      onSave={save}
+      onRemove={remove}
+    />
+  )
 
   return (
     <>
@@ -210,7 +232,7 @@ export function Run({ run, encounters, setEncounters, roster, families, onError,
       {team.length > TEAM_SIZE && (
         <p className="rule-warning">More than {TEAM_SIZE} pairs are on the team.</p>
       )}
-      {team.length === 0 ? (
+      {compact ? null : team.length === 0 ? (
         <p className="status">Nobody on the team yet. Pairs join once both of you caught something.</p>
       ) : (
         <ul className="team-grid">
@@ -245,21 +267,25 @@ export function Run({ run, encounters, setEncounters, roster, families, onError,
           <span>Status</span>
           <span />
         </div>
-        {shown.map((row) => (
-          <AreaRow
-            key={row.area}
-            row={row}
-            names={names}
-            gen={gen}
-            options={options}
-            rosterById={rosterById}
-            families={families}
-            encounters={encounters}
-            clash={conflicts[row.id]}
-            onSave={save}
-            onRemove={remove}
-          />
-        ))}
+        {shown.map((row) => compact && row.area !== current ? (
+          <button key={row.area} type="button" className={`encounter-row folded status-${row.status}${conflicts[row.id] ? ' clash' : ''}`} onClick={() => setOpenArea(row.area)}>
+            <span className="area-name">{row.area}</span>
+            {PLAYERS.map((p) => (
+              <span key={p} className="folded-mon">
+                {row[`${p}_pokemon_id`] && <img src={spriteUrl(row[`${p}_pokemon_id`])} alt="" width="32" height="32" loading="lazy" />}
+                {row[`${p}_nickname`] || rosterById[row[`${p}_pokemon_id`]]?.label || '—'}
+              </span>
+            ))}
+            <span className="status small-print">{STATUSES.find((s) => s.id === row.status)?.label}</span>
+            <span />
+          </button>
+        ) : compact ? (
+          <div key={row.area} className="encounter-open">
+            {openArea && <button type="button" className="chip-button fold-back" onClick={() => setOpenArea(null)}>Back to next area</button>}
+            {areaRow(row)}
+            {renderNext?.(row, (changes) => save(row, changes))}
+          </div>
+        ) : areaRow(row))}
       </div>
       <AddArea
         existing={rows}

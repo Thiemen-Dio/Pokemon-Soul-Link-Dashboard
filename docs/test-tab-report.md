@@ -1,6 +1,30 @@
 # Test tab report
 
-Round 1: 18 Nov 2026, 18:32–18:58. Round 2 (your feedback): 18 Nov 2026, evening. Round 2 is right below; the round 1 report follows it.
+Round 1: 18 Nov 2026, 18:32–18:58. Round 2 (your feedback): 18 Nov 2026, evening. Round 3: 23 Nov 2026. Newest round first.
+
+## Round 3: run page, your feedback
+
+| Your note | What I did |
+|---|---|
+| Team planner is the main piece | Moved to the top of the run page, right under Next up |
+| Pokémon pictures bigger | Planner sprites 56 → 112 px (72 px on phones). Each card also shows BST, Speed and ★ Legendary |
+| "Best" isn't one thing | Eight choices: Balanced, Fewest weaknesses, Highest base stats, Legendaries, Most coverage, Super tanky, Super fast, Hardest hitters. Each gives up to 5 different teams; flip with ‹ › . All keep pins and the Soul Link rules |
+| Run log next, folded except the next area | Every area is one line; only the next area to catch is open. Click any line to open it, "Back to next area" returns. The old dashboard's log is unchanged |
+| Known routes show the possible encounters | Under the open area: what can appear there (PokeAPI, e.g. JetBlack Route 2: Audino, Patrat, Lillipup, Purrloin), with level, odds and a dupe warning. Tap a player's name on a Pokémon to fill their slot. "Not listed? Search all" for anything else |
+| Randomized routes: searchable list | Randomized runs without a log get a search box over every Pokémon up to the run's generation |
+| Upload a randomizer log | Yes: Scouting → Randomizer log. Reads the "--Wild Pokemon--" part of a Universal Pokémon Randomizer ZX log (format checked against ZX's source). The run log and route finder then show that route's real Pokémon. Shows which areas didn't match (gifts, starters, other names) |
+| Caught Pokémon as a Pokédex sprite table | New card "Caught Pokémon": every catch as a sprite, in dex order, coloured by status. Click one: animated sprite, base stats, and its linked partner next to it with combined base stats |
+
+### Limits (round 3)
+- The randomizer log is kept **in this browser only** (each player loads it on their own device). Move it to the database if you both want it automatically.
+- Area matching is by name: a log set "Route 1 Grass/Cave" belongs to "Route 1". Areas with other names in the log stay unmatched and are listed.
+- Strategy options depend on how many living pairs you have: with 6 pairs there are only a few different teams.
+- Stats are today's base stats (Gen 6+ buffs included).
+
+### Checks (round 3)
+- Build passes. Self-checks pass: planner (every strategy gives valid, different teams; fast/tanky/legendary picks the right pair) and log reader (Lv and Lvs formats, ♀ names, Route 1 vs Route 10).
+- Hidden-browser run on JetBlack via a temporary preview page (no change to the login code, deleted afterwards; database only read): order planner > log > caught; 8 strategies; "Super fast" flips between 2 options; 41 folded rows, Route 2 open with 4 encounters; search "pika" finds Pikachu; a test log for Route 2 is read and shown; Caught Pokémon detail shows animated sprites and 6 stats for both partners. No page errors. Phone width (390 px): no sideways scrolling.
+- Not tested: actually tapping a Pokémon to save (would write to the real run).
 
 ## Round 2: your feedback, what changed
 

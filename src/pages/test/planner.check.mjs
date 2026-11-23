@@ -1,6 +1,6 @@
 // Self-check for the team planner maths. Run: node src/pages/test/planner.check.mjs
 import assert from 'node:assert/strict'
-import { bestTeam, fits, isValid, randomTeam, scoreTeam } from './planner.js'
+import { STRATEGIES, bestTeam, fits, isValid, randomTeam, scoreTeam, topTeams } from './planner.js'
 
 const chart = {
   fire: { grass: 2, water: 0.5, fire: 0.5 },
@@ -39,4 +39,20 @@ assert.ok(isValid(best))
 assert.equal(best.length, 3)
 assert.ok(best.includes(normal), 'high base stats should be picked')
 assert.deepEqual(bestTeam(pool, [fireFire], chart, 3)[0], fireFire)
+
+// Strategies: each gives valid, different-leaning teams; pinned stays first.
+const stats = (speed, bulk, legendary = false) => ({ hp: bulk, defense: bulk, 'special-defense': bulk, attack: 50, 'special-attack': 50, speed, bst: speed + 3 * bulk + 100, legendary })
+const mk = (area, t, st) => ({ area, primaries: [t], mons: [{ types: [t], stats: st, bst: st.bst }, { types: [t], stats: st, bst: st.bst }] })
+const fastOne = mk('F', 'fire', stats(150, 40))
+const tankOne = mk('T', 'water', stats(30, 120))
+const legend = mk('L', 'grass', stats(90, 90, true))
+const pool2 = [fastOne, tankOne, legend, normal]
+for (const k of Object.keys(STRATEGIES)) {
+  const list = topTeams(pool2, [normal], chart, k, 5, Math.random, 2)
+  assert.ok(list.length >= 1 && list.every((t) => isValid(t) && t[0] === normal), k)
+  assert.equal(new Set(list.map((t) => t.map((p) => p.area).sort().join())).size, list.length, `${k} options are different`)
+}
+assert.ok(topTeams(pool2, [], chart, 'fast', 1, Math.random, 1)[0].includes(fastOne))
+assert.ok(topTeams(pool2, [], chart, 'tank', 1, Math.random, 1)[0].includes(tankOne))
+assert.ok(topTeams(pool2, [], chart, 'legends', 1, Math.random, 1)[0].includes(legend))
 console.log('planner checks passed')

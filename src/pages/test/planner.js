@@ -40,18 +40,56 @@ export function randomTeam(pool, pinned, rand = Math.random, size = TEAM_SLOTS) 
   return team
 }
 
+const avg = (team, f) => {
+  const mons = team.flatMap((p) => p.mons).filter((m) => m.stats)
+  return mons.length ? mons.reduce((s, m) => s + f(m.stats), 0) / mons.length : 0
+}
+
+/**
+ * Ways to call a team "best". Each one leans on one thing, with the balanced score as tie-breaker,
+ * so "fastest" still avoids a team of six glass cannons weak to the same type.
+ * Mons may carry stats: { hp, attack, defense, 'special-attack', 'special-defense', speed, bst, legendary }.
+ */
+export const STRATEGIES = {
+  balanced: { label: 'Balanced', score: (t, c) => scoreTeam(t, c).score },
+  safe: { label: 'Fewest weaknesses', score: (t, c) => { const s = scoreTeam(t, c); return -s.weakSpots.reduce((n, w) => n + w.net, 0) * 20 + s.score / 10 } },
+  strong: { label: 'Highest base stats', score: (t, c) => scoreTeam(t, c).bst + scoreTeam(t, c).score / 100 },
+  legends: { label: 'Legendaries', score: (t, c) => t.flatMap((p) => p.mons).filter((m) => m.stats?.legendary).length * 100 + scoreTeam(t, c).score },
+  range: { label: 'Most coverage', score: (t, c) => scoreTeam(t, c).coverage * 20 + scoreTeam(t, c).score / 10 },
+  tank: { label: 'Super tanky', score: (t, c) => avg(t, (s) => s.hp + s.defense + s['special-defense']) + scoreTeam(t, c).score / 10 },
+  fast: { label: 'Super fast', score: (t, c) => avg(t, (s) => s.speed) + scoreTeam(t, c).score / 10 },
+  hitter: { label: 'Hardest hitters', score: (t, c) => avg(t, (s) => Math.max(s.attack, s['special-attack'])) + scoreTeam(t, c).score / 10 },
+}
+
 /** Best team found: greedy fill, then swap pairs while the score improves. Pinned pairs stay. */
-export function bestTeam(pool, pinned, chart, size = TEAM_SLOTS) {
-  const score = (t) => scoreTeam(t, chart).score
+export function bestTeam(pool, pinned, chart, size = TEAM_SLOTS, score = (t) => scoreTeam(t, chart).score) {
   const team = [...pinned]
   while (team.length < size) {
     const options = pool.filter((p) => !team.includes(p) && fits(team, p))
     if (options.length === 0) break
     team.push(options.reduce((best, p) => (score([...team, p]) > score([...team, best]) ? p : best)))
   }
+  return improve(team, pool, pinned.length, score)
+}
+
+/**
+ * The top few different teams for a strategy, best first: the greedy pick plus
+ * hill-climbs from random starts. Gives real alternatives to flip through.
+ */
+export function topTeams(pool, pinned, chart, strategy, n = 5, rand = Math.random, size = TEAM_SLOTS) {
+  const score = (t) => STRATEGIES[strategy].score(t, chart)
+  const found = new Map()
+  const add = (t) => found.set(t.map((p) => p.area).sort().join('|'), t)
+  add(bestTeam(pool, pinned, chart, size, score))
+  for (let i = 0; i < 30; i++) add(improve(randomTeam(pool, pinned, rand, size), pool, pinned.length, score))
+  return [...found.values()].sort((a, b) => score(b) - score(a)).slice(0, n)
+}
+
+function improve(start, pool, keep, score) {
+  const team = [...start]
   for (let round = 0, improved = true; improved && round < 50; round++) {
     improved = false
-    for (let i = pinned.length; i < team.length; i++) {
+    for (let i = keep; i < team.length; i++) {
       for (const p of pool) {
         if (team.includes(p)) continue
         const next = team.map((x, j) => (j === i ? p : x))

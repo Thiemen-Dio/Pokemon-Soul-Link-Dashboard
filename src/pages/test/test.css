@@ -360,3 +360,49 @@ a.home-hero:hover, a.home-hero:focus-visible { box-shadow: 0 0 0 3px var(--accen
 @keyframes medal-shine { to { transform: translateX(120%); } }
 @keyframes medal-spin { to { filter: hue-rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .medal.got::after, .medal.legend.got .medal-coin { animation: none; } }
+
+/* Team planner, round 3: the Pokémon are the main thing */
+.planner-mon img { width: 112px; height: 112px; margin: -0.6rem -0.3rem; flex: none; }
+.planner-mon { min-height: 6.5rem; }
+.planner-mon strong { font-size: 1.05rem; }
+.strategy-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.strategy-chips button { padding: 0.3rem 0.65rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font: inherit; font-size: 0.85rem; cursor: pointer; }
+.strategy-chips button:hover:not(:disabled) { border-color: var(--accent); }
+.strategy-chips button[aria-pressed='true'] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--surface)); font-weight: 600; }
+.option-flip { display: grid; grid-template-columns: auto 1fr auto; gap: 0.4rem; align-items: center; text-align: center; }
+.planner-actions { grid-template-columns: 1fr; }
+@media (max-width: 560px) { .planner-mon img { width: 72px; height: 72px; margin: -0.3rem; } }
+
+/* Run log, round 3: folded rows, only the next area open */
+.encounter-row.folded { width: 100%; border: 0; border-bottom: 1px solid var(--border); background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; padding-block: 0.3rem; }
+.folded-mon { display: flex; align-items: center; gap: 0.3rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.encounter-open { display: grid; gap: 0.6rem; padding: 0.6rem 0; border-block: 2px solid var(--accent); }
+.encounter-open .fold-back { justify-self: start; }
+.next-encounters { display: grid; gap: 0.5rem; padding: 0.75rem; border-radius: 12px; background: var(--track); }
+.next-encounters p { margin: 0; }
+.next-pick .route-mon { background: var(--surface); }
+.next-pick .route-mon > div:nth-child(2) { flex: 1; }
+.pick-buttons { display: grid; gap: 0.25rem; }
+
+/* Caught Pokémon */
+.caught-dex { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 0.35rem; }
+.caught-dex button { display: grid; justify-items: center; width: 100%; padding: 0.2rem; border: 2px solid transparent; border-bottom-color: var(--s, var(--border)); border-radius: 10px; background: var(--field); color: var(--muted); font: inherit; cursor: pointer; }
+.caught-dex button:hover, .caught-dex button[aria-pressed='true'] { border-color: var(--accent); }
+.caught-dex .s-team { --s: #2f9e44; }
+.caught-dex .s-box { --s: #1c7ed6; }
+.caught-dex .s-dead { --s: #e03131; }
+.caught-dex .s-dead img, .caught-dex .s-failed img { filter: grayscale(1); opacity: 0.6; }
+.caught-dex .s-failed { --s: #868e96; }
+.pair-detail { margin-top: 1rem; padding: 1rem; border-radius: 14px; background: var(--field); }
+.pair-detail > p { margin: 0 0 0.6rem; }
+.pair-detail-mons { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.pair-mon { display: grid; gap: 0.3rem; align-content: start; padding: 0.8rem; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); }
+.pair-mon.picked { border-color: var(--accent); }
+.anim-stage { display: grid; place-items: center; height: 120px; }
+.anim-stage img { max-height: 110px; image-rendering: pixelated; transform: scale(1.4); }
+/* Folded rows stay one line on phones: area, two names, no status text. */
+@media (max-width: 800px) {
+  .encounter-row.folded { grid-template-columns: 6.5rem 1fr 1fr; gap: 0.4rem; font-size: 0.85rem; }
+  .encounter-row.folded > :nth-child(n + 4) { display: none; }
+  .encounter-row.folded .area-name { grid-column: auto; }
+}

@@ -8,7 +8,7 @@ import { gameLabel } from '../../api/games.js'
 import TypeLink from '../../components/TypeLink.jsx'
 import { Run } from '../Home.jsx'
 import { PLAYERS, TEAM_SIZE, areaRows, primaryType } from '../../soullink/rules.js'
-import { GIFTS, LEVEL_CAPS, catches, getAreaEncounters, getNextEvolutions, locationSlug, teamPrimaryTypes, timeAgo, versionOf } from './data.js'
+import { GIFTS, LEVEL_CAPS, catches, getAreaEncounters, getMonStats, getNextEvolutions, locationSlug, logEncounters, logSetsFor, parseRandomizerLog, teamPrimaryTypes, timeAgo, versionOf } from './data.js'
 import { STARTERS } from '../../components/starters.js'
 import Medals, { overallAchievements, runAchievements } from './Achievements.jsx'
 import NewRunButton from './RunSetup.jsx'
@@ -166,10 +166,10 @@ function HomeHero({ run, encounters }) {
 
 // Jump menu, grouped like the categories on the page.
 const SECTIONS = [
-  ['Now', [['next', 'Next up'], ['log', 'Run log']]],
-  ['Team', [['planner', 'Team planner'], ['caps', 'Level caps'], ['prep', 'Boss prep'], ['coverage', 'Weaknesses'], ['evo', 'Evolutions']]],
+  ['Now', [['planner', 'Team planner'], ['log', 'Run log']]],
+  ['Team', [['caught', 'Caught Pokémon'], ['caps', 'Level caps'], ['prep', 'Boss prep'], ['coverage', 'Weaknesses'], ['evo', 'Evolutions']]],
   ['Story', [['graveyard', 'Graveyard'], ['dex', 'Run Pokédex'], ['players', 'Favourite types'], ['badges', 'Achievements'], ['timeline', 'Timeline']]],
-  ['Scouting', [['route', 'Route finder'], ['areas', 'Area planner']]],
+  ['Scouting', [['randolog', 'Randomizer log'], ['route', 'Route finder'], ['areas', 'Area planner']]],
   ['Share', [['overlay', 'Overlay'], ['share', 'Summary']]],
 ]
 
@@ -236,7 +236,14 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
   const chart = useChart(gen)
   const [beaten, setBeatenState] = useState(() => readBeaten(run.id))
   const setBeaten = (n) => { setBeatenState(n); try { localStorage.setItem(`test-beaten-${run.id}`, String(n)) } catch { /* not remembered */ } }
-  const props = { run, gen, names, rows, team, encounters, rosterById, families, chart }
+  // Uploaded randomizer log, per run in this browser. shortcut: not shared with the other player, move to the run row when it matters.
+  const logKey = `test-randolog-${run.id}`
+  const [log, setLogState] = useState(() => { try { return JSON.parse(localStorage.getItem(logKey)) } catch { return null } })
+  const setLog = (l) => {
+    setLogState(l)
+    try { if (l) localStorage.setItem(logKey, JSON.stringify(l)); else localStorage.removeItem(logKey) } catch { /* kept until reload */ }
+  }
+  const props = { run, gen, names, rows, team, encounters, roster, rosterById, families, chart, log }
 
   async function toggleFavorite(r) {
     try {
@@ -251,17 +258,24 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
     <>
       <Category id="cat-now" title={run.name} note={`${gameLabel(run.base_game)} · Gen ${gen} types${run.randomized ? ' · Randomized' : ''} · ${names.p1} & ${names.p2}`}>
         <NextUp {...props} beaten={beaten} />
+        <Card id="planner" title="Team planner" idea="Both sixes side by side. Click a slot to add a pair, pin the ones you want to keep, then pick what matters and flip through the options.">
+          <TeamPlanner {...props} />
+        </Card>
         <details id="log" className="test-card fold" open>
-          <summary><h3>Run log</h3><span className="status small-print">Catches, statuses and the team: the same as the dashboard. Setting a pair to Dead asks what happened.</span></summary>
+          <summary><h3>Run log</h3><span className="status small-print">Only the next area is open, with what can appear there. Click any other area to open it.</span></summary>
           <div className="soullink">
-            <Run run={run} encounters={encounters} setEncounters={setEncounters} roster={roster} families={families} onError={onError} onRunChange={onRunChange} />
+            <Run
+              run={run} encounters={encounters} setEncounters={setEncounters} roster={roster} families={families} onError={onError} onRunChange={onRunChange}
+              compact
+              renderNext={(row, save) => <NextEncounters {...props} row={row} save={save} />}
+            />
           </div>
         </details>
       </Category>
 
-      <Category id="cat-team" title="Team" note="Building the six pairs and getting ready for the next boss.">
-        <Card id="planner" title="Team planner" idea="Both sixes side by side. Click a slot to add a pair, pin the ones you want to keep, then Randomize or let Best option pick.">
-          <TeamPlanner {...props} />
+      <Category id="cat-team" title="Team" note="Getting ready for the next boss.">
+        <Card id="caught" title="Caught Pokémon" idea="Every Pokémon caught in this run. Click one for its animated sprite, stats and its linked partner.">
+          <CaughtDex {...props} />
         </Card>
         <Card id="caps" title="Level caps" idea="The bosses in order, with their ace’s level as the cap and how many of your team are weak to them. Vanilla numbers: hacks need their own list.">
           <LevelCaps {...props} beaten={beaten} setBeaten={setBeaten} />
@@ -296,6 +310,9 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
       </Category>
 
       <Category id="cat-scout" title="Scouting" note="Folded away for now: open when you need them.">
+        <Card id="randolog" title="Randomizer log" idea="Upload the .log file from Universal Pokémon Randomizer ZX: the run log and route finder then show what each route really holds." folded={!run.randomized}>
+          <RandomizerLog {...props} setLog={setLog} />
+        </Card>
         <Card id="route" title="Route finder" idea="What can appear on an area in this game, with dupe chance, dupes and type clashes marked." folded>
           <RouteFinder {...props} />
         </Card>
@@ -398,27 +415,45 @@ function Graveyard({ rows, rosterById, names, onFavorite }) {
 
 // ---- Route finder ----
 
-function RouteFinder({ run, gen, rows, encounters, rosterById, families, names }) {
-  const [area, setArea] = useState(rows.find((r) => r.status === 'pending' && r.area !== 'Starter')?.area ?? rows[0]?.area)
-  const [state, setState] = useState({ status: 'idle', mons: [] })
+/**
+ * What can appear on an area: from the uploaded randomizer log if it covers the area (source 'log'),
+ * else the normal game's tables from PokeAPI (source 'game').
+ */
+function useAreaMons(run, area, roster, log) {
+  const gen = run.generation
   const location = area ? locationSlug(area, gen) : null
   const version = versionOf(run.base_game)
-
+  const fromLog = useMemo(() => (log && area ? logEncounters(area, log.sets, roster) : []), [log, area, roster])
+  const [state, setState] = useState({ status: 'idle', mons: [] })
   useEffect(() => {
     if (!location) return
+    if (fromLog.length) return setState({ status: 'ready', mons: fromLog, source: 'log' })
     // PokeAPI has no "starter" location: offer the generation's three starters instead.
-    if (location === 'starter') return setState({ status: 'ready', mons: (STARTERS[gen] ?? []).map((id) => ({ id, dex: id, min: 5, max: 5, methods: { gift: 100 } })) })
+    if (location === 'starter') return setState({ status: 'ready', source: 'game', mons: (STARTERS[gen] ?? []).map((id) => ({ id, dex: id, min: 5, max: 5, methods: { gift: 100 } })) })
     if (GIFTS[area]) {
       const [id, level] = GIFTS[area]
-      return setState({ status: 'ready', mons: [{ id, dex: id, min: level, max: level, methods: { gift: 100 } }] })
+      return setState({ status: 'ready', source: 'game', mons: [{ id, dex: id, min: level, max: level, methods: { gift: 100 } }] })
     }
     let live = true
     setState({ status: 'loading', mons: [] })
     getAreaEncounters(location, version)
-      .then((mons) => live && setState({ status: 'ready', mons }))
+      .then((mons) => live && setState({ status: 'ready', mons, source: 'game' }))
       .catch((e) => live && setState({ status: 'error', mons: [], message: e.message }))
     return () => { live = false }
-  }, [location, version, gen, area])
+  }, [location, version, gen, area, fromLog])
+  return { ...state, location, version }
+}
+
+/** "Lv 3–5 · Grass 40%" or, from a randomizer log, "Lv 3–5 · Grass/Cave". */
+const encounterInfo = (m) => [
+  m.min ? `Lv ${m.min === m.max ? m.min : `${m.min}–${m.max}`}` : null,
+  m.where ?? (Object.entries(m.methods ?? {}).map(([k, v]) => `${displayName(k)} ${v}%`).join(', ') || null),
+].filter(Boolean).join(' · ')
+
+function RouteFinder({ run, gen, rows, encounters, roster, rosterById, families, names, log }) {
+  const [area, setArea] = useState(rows.find((r) => r.status === 'pending' && r.area !== 'Starter')?.area ?? rows[0]?.area)
+  const state = useAreaMons(run, area, roster, log)
+  const { location, version } = state
 
   const caught = catches(encounters)
   const familyOf = (dex) => families[dex] ?? -dex
@@ -442,7 +477,7 @@ function RouteFinder({ run, gen, rows, encounters, rosterById, families, names }
 
   return (
     <>
-      {run.randomized && <p className="rule-warning">This run is randomized, so the game’s normal encounter tables don’t apply. Shown for reference only.</p>}
+      {run.randomized && state.source !== 'log' && <p className="rule-warning">This run is randomized, so the game’s normal encounter tables don’t apply. Upload the randomizer log above to see the real ones.</p>}
       {Object.keys(odds).length > 0 && (
         <div className="odds">
           {Object.entries(odds).map(([method, o]) => (
@@ -455,7 +490,7 @@ function RouteFinder({ run, gen, rows, encounters, rosterById, families, names }
           {rows.map((r) => <option key={r.area} value={r.area}>{r.area}</option>)}
         </select>
         <input type="number" min="1" max="100" className="level-filter" placeholder="Max level" aria-label="Hide Pokémon above this level" value={maxLevel} onChange={(e) => setMaxLevel(e.target.value)} />
-        <span className="status small-print">PokeAPI location “{location}” in {displayName(version)}</span>
+        <span className="status small-print">{state.source === 'log' ? `From ${log.file}` : `PokeAPI location “${location}” in ${displayName(version)}`}</span>
       </div>
       {state.status === 'loading' && <p className="status">Loading encounters…</p>}
       {state.status === 'error' && <p className="status error">{state.message}</p>}
@@ -471,7 +506,7 @@ function RouteFinder({ run, gen, rows, encounters, rosterById, families, names }
               <Mon id={m.id} size={56} />
               <div>
                 <strong>{rosterById[m.id]?.label ?? (m.name ? displayName(m.name) : `#${m.id}`)}</strong>
-                <span className="status small-print">Lv {m.min === m.max ? m.min : `${m.min}–${m.max}`} · {Object.entries(m.methods).map(([k, v]) => `${displayName(k)} ${v}%`).join(', ')}</span>
+                <span className="status small-print">{encounterInfo(m)}</span>
                 <span className="types">{types.map((t) => <TypeLink key={t} type={t} small />)}</span>
                 {dupe && <span className="slot-warning">Dupe: {names[dupe.player]} has this line ({dupe.area})</span>}
                 {!dupe && clash && <span className="clash-tag">Primary type already on the team</span>}
@@ -483,6 +518,175 @@ function RouteFinder({ run, gen, rows, encounters, rosterById, families, names }
     </>
   )
 }
+
+// ---- Next encounter (inside the run log) ----
+
+/** Under the open area: tap what you caught. Known routes list their Pokémon; randomized ones without a log get a search. */
+function NextEncounters({ run, gen, row, save, roster, rosterById, families, encounters, names, log }) {
+  const state = useAreaMons(run, row.area, roster, log)
+  const known = !run.randomized || state.source === 'log'
+  const [searching, setSearching] = useState(false)
+  const [q, setQ] = useState('')
+  const free = PLAYERS.filter((p) => !row[`${p}_pokemon_id`])
+  if (free.length === 0) return null
+
+  const search = !known || searching
+  const text = q.trim().toLowerCase()
+  const list = search
+    ? roster.filter((e) => e.generation <= gen && (!text || e.label.toLowerCase().includes(text))).slice(0, 48)
+    : state.mons
+  const familyOf = (dex) => families[dex] ?? -dex
+  const used = new Map(catches(encounters).map((c) => [familyOf(rosterById[c.id]?.dex ?? c.id), c]))
+
+  return (
+    <div className="next-encounters">
+      <div className="toolbar">
+        <strong>{search ? `Which Pokémon did you find on ${row.area}?` : `Can appear on ${row.area}`}</strong>
+        {search && <input type="search" placeholder="Search a Pokémon" aria-label="Search a Pokémon" value={q} onChange={(e) => setQ(e.target.value)} />}
+        {known && <button type="button" className="chip-button" onClick={() => setSearching((s) => !s)}>{searching ? 'Back to the route list' : 'Not listed? Search all'}</button>}
+      </div>
+      {!known && <p className="status small-print">Randomized run: search what you found. Upload the randomizer log (Scouting) to see each route’s real Pokémon here.</p>}
+      {!search && state.source === 'log' && <p className="status small-print">From your randomizer log.</p>}
+      {!search && state.status === 'loading' && <p className="status">Loading encounters…</p>}
+      {!search && state.status === 'error' && <p className="status error">{state.message}</p>}
+      {!search && state.status === 'ready' && list.length === 0 && <p className="status">No list for this area. Use “Search all”.</p>}
+      <ul className="route-mons next-pick">
+        {list.map((m) => {
+          const entry = rosterById[m.id]
+          const dupe = used.get(familyOf(entry?.dex ?? m.dex ?? m.id))
+          return (
+            <li key={m.id} className={dupe ? 'route-mon is-dupe' : 'route-mon'}>
+              <Mon id={m.id} size={56} />
+              <div>
+                <strong>{entry?.label ?? (m.name ? displayName(m.name) : `#${m.id}`)}</strong>
+                {!search && <span className="status small-print">{encounterInfo(m)}</span>}
+                <span className="types">{entry && rosterTypesInGeneration(entry, gen).map((t) => <TypeLink key={t} type={t} small />)}</span>
+                {dupe && <span className="slot-warning">Dupe: {names[dupe.player]} has this line ({dupe.area})</span>}
+              </div>
+              <div className="pick-buttons">
+                {free.map((p) => (
+                  <button key={p} type="button" className="chip-button" onClick={() => save({ [`${p}_pokemon_id`]: m.id })} title={`${names[p]} caught this on ${row.area}`}>
+                    {names[p]}
+                  </button>
+                ))}
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+// ---- Randomizer log ----
+
+function RandomizerLog({ log, setLog, rows }) {
+  const [error, setError] = useState('')
+  async function load(file) {
+    const sets = parseRandomizerLog(await file.text())
+    if (sets.length === 0) return setError('No “--Wild Pokemon--” section in this file. Is it a Universal Pokémon Randomizer ZX log, with wild Pokémon randomized?')
+    setError('')
+    setLog({ file: file.name, sets })
+  }
+  const missing = log ? rows.filter((r) => logSetsFor(r.area, log.sets).length === 0).map((r) => r.area) : []
+  return (
+    <>
+      <div className="toolbar">
+        <input type="file" accept=".log,.txt" aria-label="Randomizer log file" onChange={(e) => e.target.files[0] && load(e.target.files[0])} />
+        {log && <button type="button" className="chip-button" onClick={() => setLog(null)}>Remove log</button>}
+      </div>
+      {error && <p className="status error">{error}</p>}
+      {log && (
+        <p className="status">
+          {log.file}: {log.sets.length} encounter sets, {rows.length - missing.length} of {rows.length} areas matched.
+          {missing.length > 0 && <span className="small-print"> No match (gifts, starters or different names): {missing.join(', ')}.</span>}
+        </p>
+      )}
+      <p className="status small-print">The file stays in this browser: nothing is uploaded to the database, so the other player loads it on their own device.</p>
+    </>
+  )
+}
+
+// ---- Caught Pokémon ----
+
+const animatedUrl = (id) => spriteUrl(id).replace(/\/(\d+)\.png$/, '/other/showdown/$1.gif')
+const STAT_LABELS = { hp: 'HP', attack: 'Atk', defense: 'Def', 'special-attack': 'SpA', 'special-defense': 'SpD', speed: 'Spe' }
+
+function CaughtDex({ rows, rosterById, names, gen }) {
+  const list = rows.flatMap((r) => PLAYERS.filter((p) => r[`${p}_pokemon_id`]).map((p) => ({ row: r, player: p, id: r[`${p}_pokemon_id`] })))
+    .sort((a, b) => (rosterById[a.id]?.dex ?? a.id) - (rosterById[b.id]?.dex ?? b.id))
+  const [open, setOpen] = useState(null) // `${area}|${player}`
+  const sel = list.find((c) => `${c.row.area}|${c.player}` === open)
+  if (list.length === 0) return <p className="status">Nothing caught yet.</p>
+  return (
+    <>
+      <ul className="caught-dex">
+        {list.map((c) => {
+          const key = `${c.row.area}|${c.player}`
+          return (
+            <li key={key} className={`s-${c.row.status}`}>
+              <button type="button" aria-pressed={open === key} onClick={() => setOpen(open === key ? null : key)} title={`${rosterById[c.id]?.label ?? c.id} · ${names[c.player]} · ${c.row.area}`}>
+                <img className="pixel" src={spriteUrl(c.id)} alt={rosterById[c.id]?.label ?? ''} width="64" height="64" loading="lazy" />
+                <span className="small-print">{formatDex(rosterById[c.id]?.dex ?? c.id)}</span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+      <p className="status small-print">Green team, blue PC, red dead, grey failed.</p>
+      {sel && <PairDetail row={sel.row} first={sel.player} rosterById={rosterById} names={names} gen={gen} />}
+    </>
+  )
+}
+const formatDex = (n) => `#${String(n).padStart(3, '0')}`
+
+/** The clicked Pokémon next to its linked partner: animated sprites and base stats. */
+function PairDetail({ row, first, rosterById, names, gen }) {
+  const order = first === 'p1' ? PLAYERS : [...PLAYERS].reverse()
+  const ids = order.map((p) => row[`${p}_pokemon_id`]).filter(Boolean)
+  const [stats, setStats] = useState({})
+  const key = ids.join(',')
+  useEffect(() => { getMonStats(key.split(',').map(Number)).then(setStats).catch(() => setStats({})) }, [key])
+  const total = ids.reduce((s, id) => s + (stats[id]?.bst ?? 0), 0)
+  return (
+    <div className="pair-detail">
+      <p className="status small-print">{row.area} · {STATUSES_TEXT[row.status]}{ids.length === 2 && total ? ` · together ${total} base stats` : ''}</p>
+      <div className="pair-detail-mons">
+        {order.map((p) => {
+          const id = row[`${p}_pokemon_id`]
+          const entry = rosterById[id]
+          const s = stats[id]
+          return (
+            <div key={p} className={p === first ? 'pair-mon picked' : 'pair-mon'}>
+              <span className="mon-owner">{names[p]}{p !== first && ' · linked partner'}</span>
+              {!id ? <p className="status">Not caught yet.</p> : (
+                <>
+                  <div className="anim-stage">
+                    <img src={animatedUrl(id)} alt={entry?.label ?? ''} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = spriteUrl(id) }} />
+                  </div>
+                  <strong>{row[`${p}_nickname`] || entry?.label}</strong>
+                  {row[`${p}_nickname`] && <span className="status small-print">{entry?.label}</span>}
+                  <span className="types">{entry && rosterTypesInGeneration(entry, gen).map((t) => <TypeLink key={t} type={t} small />)}</span>
+                  {s ? (
+                    <table className="stats">
+                      <tbody>
+                        {Object.entries(STAT_LABELS).map(([k, label]) => (
+                          <tr key={k}><th>{label}</th><td className="stat-value">{s[k]}</td><td className="stat-bar"><span style={{ width: `${Math.min(100, (s[k] / 255) * 100)}%` }} /></td></tr>
+                        ))}
+                        <tr className="total"><th>Total</th><td className="stat-value">{s.bst}</td><td>{s.legendary && '★ Legendary'}</td></tr>
+                      </tbody>
+                    </table>
+                  ) : <p className="status small-print">Loading stats…</p>}
+                </>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+const STATUSES_TEXT = { team: 'on the team', box: 'in the PC', dead: 'dead', failed: 'failed', pending: 'waiting for the partner' }
 
 // ---- Level caps ----
 
