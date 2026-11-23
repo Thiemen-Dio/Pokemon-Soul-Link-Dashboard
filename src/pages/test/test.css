@@ -454,10 +454,6 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
 .def-chip { display: inline-flex; align-items: center; gap: 0.15rem; font-size: 0.75rem; font-weight: 700; }
 
 /* Round 6: nature colours, item tabs, Pokédex button */
-.mon-card .stats tr.nat-up th, .mon-card .stats tr.nat-up .stat-value { color: #e03131; font-weight: 700; }
-.mon-card .stats tr.nat-down th, .mon-card .stats tr.nat-down .stat-value { color: #1c7ed6; font-weight: 700; }
-.mon-card .stats tr.nat-up .stat-bar span { background: #e03131; }
-.mon-card .stats tr.nat-down .stat-bar span { background: #1c7ed6; }
 .stat-value { white-space: nowrap; }
 .stat-item { vertical-align: middle; margin-left: 0.15rem; }
 .dex-button { justify-self: start; height: 1.8rem; margin-top: 0.2rem; font-size: 0.8rem; }
@@ -471,3 +467,15 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
 .build-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.75rem; align-items: start; }
 .build-pair .ability-select { width: 100%; min-width: 0; }
 .planner-actions { grid-template-columns: 1fr 1fr; }
+
+/* Round 8: two stat styles to compare */
+.stats-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.stats-head .tabs button { font-size: 0.8rem; }
+/* Game style: calm grey bars; only the nature's stats get colour (red up, blue down). */
+.stat-style-game .stat-bar span { background: var(--border-strong); }
+.stat-style-game tr.nat-up th, .stat-style-game tr.nat-up .stat-value { color: #e03131; font-weight: 700; }
+.stat-style-game tr.nat-down th, .stat-style-game tr.nat-down .stat-value { color: #1c7ed6; font-weight: 700; }
+.stat-style-game tr.nat-up .stat-bar span { background: #e03131; }
+.stat-style-game tr.nat-down .stat-bar span { background: #1c7ed6; }
+/* PokémonDB style: bar colour = how high the stat is; nature is the + / − in front of the name. */
+.stat-style-pokedb tr.nat-up th, .stat-style-pokedb tr.nat-down th { color: var(--text); font-weight: 700; }
