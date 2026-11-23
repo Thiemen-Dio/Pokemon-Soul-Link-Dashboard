@@ -1,4 +1,4 @@
-// Test tab: prototypes for new pages. /test = home across all runs, /test/run/:name = one run.
+// Dashboard (was the Test tab): /dashboard = home across all runs, /dashboard/run/:name = one run.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { chartForGeneration, defensiveMatchups, displayName, getTypeData, spriteUrl, TYPE_COLORS } from '../../api/pokeapi.js'
@@ -17,7 +17,7 @@ import MonCard from './MonCard.jsx'
 import './test.css'
 
 const RUN_STATE = { active: 'In progress', won: 'Beaten', lost: 'Lost' }
-const runLink = (r) => `/test/run/${encodeURIComponent(r.name)}`
+const runLink = (r) => `/dashboard/run/${encodeURIComponent(r.name)}`
 
 /** Pokémon data every page needs: roster (names, Gen types) and evolution families. */
 function usePokemonData() {
@@ -105,7 +105,7 @@ export default function Test() {
             <Link to="/pokedex" className="door"><strong>Pokédex</strong><span>Look up any Pokémon</span></Link>
             <Link to="/pokedex/types" className="door"><strong>Type chart</strong><span>Gen-correct matchups</span></Link>
             <Link to="/pokedex/moves" className="door"><strong>Moves</strong><span>Who learns what</span></Link>
-            <Link to="/" className="door"><strong>Old dashboard</strong><span>The current run page</span></Link>
+            <Link to="/release-notes" className="door"><strong>Release notes</strong><span>What changed in this version</span></Link>
           </div>
         </div>
       </div>
@@ -196,10 +196,10 @@ export function TestRun() {
 
   if (error) return <p className="status error">{error}</p>
   if (!runs) return <p className="status">Loading…</p>
-  if (!run) return <p className="status">No run called “{runName}”. <Link to="/test">All runs</Link></p>
+  if (!run) return <p className="status">No run called “{runName}”. <Link to="/dashboard">All runs</Link></p>
   return (
     <section className="test-page">
-      <Link to="/test" className="back-link">← All runs</Link>
+      <Link to="/dashboard" className="back-link">← All runs</Link>
       <nav className="test-jump" aria-label="Sections">
         {SECTIONS.map(([group, items]) => (
           <div key={group} className="jump-group">

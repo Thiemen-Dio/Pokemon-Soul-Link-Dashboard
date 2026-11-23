@@ -85,7 +85,7 @@ h3 { letter-spacing: -0.015em; }
 .nav a:hover { color: var(--text); background: var(--track); }
 .nav a.active { color: var(--surface); background: var(--text); }
 @media (max-width: 480px) {
-  .nav { padding: 0.5rem 1rem; gap: 0; }
+  .nav { padding: 0.5rem 1rem; gap: 0; flex-wrap: wrap; row-gap: 0.2rem; }
   .nav a { padding: 0.4rem 0.6rem; font-size: 0.9rem; }
 }
 
@@ -655,3 +655,23 @@ h5 { margin: 0.9rem 0 0.3rem; font-size: 0.9rem; }
 .death-head h3 { margin: 0; font-size: 1.25rem; }
 .death-head p { margin: 0.2rem 0 0; }
 .death-head img { filter: grayscale(1); image-rendering: pixelated; }
+
+/* Home placeholder + release notes */
+.home-soon { display: grid; gap: 1rem; max-width: 60rem; }
+.home-soon h2 { margin: 0; }
+.release-notes { display: grid; gap: 1.5rem; max-width: 70rem; }
+.release-notes > h2 { margin: 0; }
+.release { display: grid; gap: 1.25rem; padding: 1.5rem; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); }
+.release-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.release-tag { padding: 0.3rem 0.8rem; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 700; }
+.release-summary { margin: 0; font-size: 1.05rem; }
+.release-compare th[scope], .release-compare tbody th { text-align: left; white-space: nowrap; }
+.release-compare td.before { color: var(--muted); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--muted) 50%, transparent); }
+.release-compare td.now { font-weight: 600; }
+.release-section { display: grid; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.release-section.with-image { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: start; }
+@media (max-width: 860px) { .release-section.with-image { grid-template-columns: 1fr; } }
+.release-section h3 { margin: 0 0 0.5rem; }
+.release-section ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; }
+.release-section figure { margin: 0; display: grid; gap: 0.4rem; }
+.release-section img { width: 100%; height: auto; max-height: 34rem; object-fit: contain; object-position: top; border: 1px solid var(--border); border-radius: 12px; background: var(--field); }

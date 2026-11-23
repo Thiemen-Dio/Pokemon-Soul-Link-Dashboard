@@ -68,7 +68,7 @@ function RunSetup({ onClose }) {
     }
     try {
       const run = await createRun({ name: f.name.trim(), base_game: f.game, generation: game.generation, randomized: f.randomized, player1_name: f.p1.trim() || 'Player 1', player2_name: f.p2.trim() || 'Player 2', rules })
-      navigate(`/test/run/${encodeURIComponent(run.name)}`)
+      navigate(`/dashboard/run/${encodeURIComponent(run.name)}`)
     } catch (err) {
       setBusy(false)
       // Before migration 002 the "rules" column doesn't exist yet.

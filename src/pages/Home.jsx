@@ -1,14 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+// The run log: every area of a run as a linked pair, with the Soul Link rules. Used by the dashboard's run page.
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatDexNumber, spriteUrl } from '../api/pokeapi.js'
-import { getEvolutionFamilies, getTypeRoster, rosterTypesInGeneration } from '../api/pokeapiGraphql.js'
-import {
-  deleteEncounter,
-  getEncounters,
-  getRuns,
-  saveEncounter,
-  subscribeToRun,
-  updateRun,
-} from '../api/soullink.js'
+import { rosterTypesInGeneration } from '../api/pokeapiGraphql.js'
+import { deleteEncounter, saveEncounter, updateRun } from '../api/soullink.js'
 import { gameLabel } from '../api/games.js'
 import DeathDialog from '../components/DeathDialog.jsx'
 import TypeLink from '../components/TypeLink.jsx'
@@ -25,98 +19,6 @@ import {
 } from '../soullink/rules.js'
 
 const RUN_STATUS = { active: 'In progress', won: 'Beaten', lost: 'Lost' }
-
-export default function Home() {
-  const [runs, setRuns] = useState([])
-  const [runId, setRunId] = useState(null)
-  const [encounters, setEncounters] = useState([])
-  const [roster, setRoster] = useState(null)
-  const [families, setFamilies] = useState({})
-  const [status, setStatus] = useState('loading')
-  const [error, setError] = useState('')
-
-  // Pokémon data (names, Gen-correct types, evolution families) for the pickers and rules.
-  useEffect(() => {
-    Promise.all([getTypeRoster(), getEvolutionFamilies()])
-      .then(([r, f]) => {
-        setRoster(r)
-        setFamilies(f)
-      })
-      .catch(() => setError('Couldn’t load the Pokémon list from PokeAPI. Type checks are off.'))
-  }, [])
-
-  const loadRuns = useCallback(async () => {
-    const list = await getRuns()
-    setRuns(list)
-    setRunId((current) => current ?? (list.find((r) => r.status === 'active') ?? list.at(-1))?.id ?? null)
-    return list
-  }, [])
-
-  useEffect(() => {
-    loadRuns()
-      .then(() => setStatus('ready'))
-      .catch((e) => {
-        setError(`Couldn’t reach the Soul Link database: ${e.message}`)
-        setStatus('error')
-      })
-  }, [loadRuns])
-
-  const loadEncounters = useCallback(async (id) => {
-    if (!id) return setEncounters([])
-    setEncounters(await getEncounters(id))
-  }, [])
-
-  // Load this run's areas, and reload whenever either player changes something.
-  useEffect(() => {
-    if (!runId) return
-    loadEncounters(runId).catch((e) => setError(e.message))
-    return subscribeToRun(runId, () => {
-      loadEncounters(runId).catch(() => {})
-      loadRuns().catch(() => {})
-    })
-  }, [runId, loadEncounters, loadRuns])
-
-  const run = runs.find((r) => r.id === runId)
-
-  if (status === 'loading') return <p className="status">Loading…</p>
-  if (status === 'error') return <p className="status error">{error}</p>
-
-  return (
-    <section className="soullink">
-      <div className="page-head">
-        <h2>Soul Link</h2>
-        <div className="run-picker" role="tablist" aria-label="Runs">
-          {runs.map((r) => (
-            <button
-              key={r.id}
-              role="tab"
-              aria-selected={r.id === runId}
-              className={r.id === runId ? 'run-chip active' : 'run-chip'}
-              onClick={() => setRunId(r.id)}
-            >
-              {r.name}
-              <span className={`run-state ${r.status}`}>{RUN_STATUS[r.status]}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {error && <p className="status error">{error}</p>}
-      {!run && <p className="status">No runs yet.</p>}
-      {run && (
-        <Run
-          run={run}
-          encounters={encounters}
-          setEncounters={setEncounters}
-          roster={roster}
-          families={families}
-          onError={setError}
-          onRunChange={(r) => setRuns((list) => list.map((x) => (x.id === r.id ? r : x)))}
-        />
-      )}
-    </section>
-  )
-}
 
 // "Alive" = on the team or in the PC.
 const ENCOUNTER_FILTERS = {

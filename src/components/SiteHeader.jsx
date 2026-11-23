@@ -38,9 +38,10 @@ export default function SiteHeader({ email }) {
     <header className={hidden ? 'site-header hidden' : 'site-header'}>
       <nav className="nav">
         <span className="brand">Soul Link</span>
-        <NavLink to="/" end>Dashboard</NavLink>
+        <NavLink to="/" end>Home</NavLink>
+        <NavLink to="/dashboard">Dashboard</NavLink>
         <NavLink to="/pokedex">Pokédex</NavLink>
-        <NavLink to="/test">Test</NavLink>
+        <NavLink to="/release-notes">Release notes</NavLink>
         <button type="button" className="logout" title={email ? `Logged in as ${email}` : undefined} onClick={() => supabase?.auth.signOut()}>
           Log out
         </button>
