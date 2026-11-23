@@ -5,7 +5,7 @@ const RELEASES = [
   {
     name: 'Test to prod 1',
     date: '23 November 2026',
-    summary: 'Everything from the Test tab is now the real site. The old dashboard is replaced by a dashboard with all runs, and every run gets its own page built around the team.',
+    summary: 'What was built in the Test tab is now the real site. The old dashboard is replaced by a dashboard with all runs, and every run gets its own page built around the team.',
     compare: [
       ['Start page', 'The run log of one run', 'Home (still to be built) + Dashboard with all runs'],
       ['Choosing a run', 'Chips at the top of the page', 'Run cards with team, progress and status; “Playing now” on top'],
@@ -20,7 +20,7 @@ const RELEASES = [
         title: 'New structure',
         image: ['dashboard-home.png', 'The dashboard: the run you are playing, then every run with its team and a dot per area.'],
         points: [
-          'Menu: Home, Dashboard, Pokédex, Release notes. The Test tab is gone: its pages are the real ones now (old /test links still work).',
+          'Menu: Home, Dashboard, Pokédex, Release notes, Test. The Test tab stays as the playground for new ideas; what worked there is now the real dashboard.',
           'Home says “Home page needs to be built” for now, with doors to the rest of the site.',
           'Dashboard: the run you are playing, cards for every run, latest news from all runs, “In which runs did we use…?”, all runs side by side and the Hall of Fame.',
           'New run button with the run’s rules and randomizer settings.',

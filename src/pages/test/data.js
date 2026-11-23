@@ -1,4 +1,4 @@
-// Test tab helpers. Experimental: nothing here writes to the run database.
+// Test copy of the dashboard helpers: PokeAPI lookups and run maths. Nothing here writes to the run database.
 import { PLAYERS, primaryType } from '../../soullink/rules.js'
 
 const GRAPHQL = 'https://graphql.pokeapi.co/v1beta2'

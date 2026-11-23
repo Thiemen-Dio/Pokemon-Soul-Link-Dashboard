@@ -1,7 +1,7 @@
 // Login for the whole site (Supabase e-mail + password). The database decides who may
 // change data (see supabase/migrations/002); this page only asks who you are.
 import { useEffect, useState } from 'react'
-import { supabase } from '../api/supabase.js'
+import { supabase } from '../../api/supabase.js'
 
 /** The logged-in session: undefined while checking, null when logged out. */
 export function useSession() {

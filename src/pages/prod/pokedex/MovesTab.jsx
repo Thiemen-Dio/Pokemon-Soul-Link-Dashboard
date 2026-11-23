@@ -8,12 +8,12 @@ import {
   getGeneration,
   spriteUrl,
   withRegionalForms,
-} from '../../api/pokeapi.js'
-import { compareWays, getGames, getLearnset, getMoves, getRegionalForms, methodLabel } from '../../api/pokeapiGraphql.js'
-import { gameLabel } from '../../api/games.js'
-import { GenerationPicker, PickerRow, TypePicker } from '../../components/Pickers.jsx'
-import MoveLearners from '../../components/MoveLearners.jsx'
-import PokemonDetail from '../../components/PokemonDetail.jsx'
+} from '../../../api/pokeapi.js'
+import { compareWays, getGames, getLearnset, getMoves, getRegionalForms, methodLabel } from '../../../api/pokeapiGraphql.js'
+import { gameLabel } from '../../../api/games.js'
+import { GenerationPicker, PickerRow, TypePicker } from '../../../components/Pickers.jsx'
+import MoveLearners from '../../../components/MoveLearners.jsx'
+import PokemonDetail from '../../../components/PokemonDetail.jsx'
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX']
 const CATEGORIES = {

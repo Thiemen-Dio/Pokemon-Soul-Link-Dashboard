@@ -2,6 +2,15 @@
 
 Round 1: 18 Nov 2026, 18:32–18:58. Round 2 (your feedback): 18 Nov 2026, evening. Round 3: 23 Nov 2026. Newest round first.
 
+## Folder structure: prod / test (23 Nov 2026)
+
+- `src/pages/prod/`: the live site. `dashboard/` (Dashboard, run log, team planner, cards, overlay, helpers, `dashboard.css`), `pokedex/`, `Pokedex.jsx`, `Login.jsx`, `HomeSoon.jsx`, `ReleaseNotes.jsx`. No "test" names or links inside.
+- `src/pages/test/`: the Test playground at `/test`, a full copy of the prod dashboard (`Test.jsx`, `test.css`, own run log, planner, card, helpers) with its own links (`/test/run/…`) and its own browser memory keys (`test-…`). Prod uses `dash-…` keys and reads the old `test-…` ones as a fallback.
+- Shared by both: `src/api`, `src/components`, `src/soullink`, `src/index.css`.
+- Test is loaded only when opened (separate download). Its CSS applies to the whole page once loaded, so changed rules in `test.css` go under `.test-page`.
+- Both use the same database: saving in Test changes the real runs.
+- Self-checks: `node src/pages/prod/dashboard/planner.check.mjs` / `data.check.mjs`, and the same in `src/pages/test/`.
+
 ## Rounds 7–9: card polish, hard lock, Best option, items switch (23 Nov 2026)
 
 - Nature next to ability; Pokédex button next to the name. Clicking outside closes an open planner card and the item list.

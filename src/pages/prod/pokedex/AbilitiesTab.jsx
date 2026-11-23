@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { displayName, spriteUrl } from '../../api/pokeapi.js'
-import { getAbilities } from '../../api/pokeapiGraphql.js'
-import { GenerationPicker, PickerRow } from '../../components/Pickers.jsx'
-import PokemonDetail from '../../components/PokemonDetail.jsx'
+import { displayName, spriteUrl } from '../../../api/pokeapi.js'
+import { getAbilities } from '../../../api/pokeapiGraphql.js'
+import { GenerationPicker, PickerRow } from '../../../components/Pickers.jsx'
+import PokemonDetail from '../../../components/PokemonDetail.jsx'
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX']
 

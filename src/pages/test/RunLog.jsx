@@ -1,11 +1,11 @@
 // The run log: every area of a run as a linked pair, with the Soul Link rules. Used by the dashboard's run page.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { formatDexNumber, spriteUrl } from '../api/pokeapi.js'
-import { rosterTypesInGeneration } from '../api/pokeapiGraphql.js'
-import { deleteEncounter, saveEncounter, updateRun } from '../api/soullink.js'
-import { gameLabel } from '../api/games.js'
-import DeathDialog from '../components/DeathDialog.jsx'
-import TypeLink from '../components/TypeLink.jsx'
+import { formatDexNumber, spriteUrl } from '../../api/pokeapi.js'
+import { rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
+import { deleteEncounter, saveEncounter, updateRun } from '../../api/soullink.js'
+import { gameLabel } from '../../api/games.js'
+import DeathDialog from '../../components/DeathDialog.jsx'
+import TypeLink from '../../components/TypeLink.jsx'
 import {
   PLAYERS,
   STATUSES,
@@ -16,7 +16,7 @@ import {
   statusAfterCatch,
   teamClash,
   typeConflicts,
-} from '../soullink/rules.js'
+} from '../../soullink/rules.js'
 
 const RUN_STATUS = { active: 'In progress', won: 'Beaten', lost: 'Lost' }
 
@@ -30,7 +30,7 @@ const ENCOUNTER_FILTERS = {
 
 /**
  * compact: rows fold to one line, only the next area (or the one clicked) is open,
- * with renderNext(row, save) shown under it. Used by the Test tab.
+ * with renderNext(row, save) shown under it. Test copy of the run log.
  */
 export function Run({ run, encounters, setEncounters, roster, families, onError, onRunChange, compact, renderNext }) {
   const gen = run.generation

@@ -7,11 +7,11 @@ import {
   getTypeData,
   idFromUrl,
   spriteUrl,
-} from '../../api/pokeapi.js'
-import { getTypeRoster, rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
-import { GenerationPicker, PickerRow } from '../../components/Pickers.jsx'
-import PokemonDetail from '../../components/PokemonDetail.jsx'
-import TypeLink from '../../components/TypeLink.jsx'
+} from '../../../api/pokeapi.js'
+import { getTypeRoster, rosterTypesInGeneration } from '../../../api/pokeapiGraphql.js'
+import { GenerationPicker, PickerRow } from '../../../components/Pickers.jsx'
+import PokemonDetail from '../../../components/PokemonDetail.jsx'
+import TypeLink from '../../../components/TypeLink.jsx'
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX']
 const LATEST_GEN = 9

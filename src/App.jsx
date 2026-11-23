@@ -1,16 +1,17 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useParams } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
+import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom'
 import ScrollToTop from './components/ScrollToTop.jsx'
 import SiteHeader from './components/SiteHeader.jsx'
-import HomeSoon from './pages/HomeSoon.jsx'
-import Login, { useSession } from './pages/Login.jsx'
-import Pokedex from './pages/Pokedex.jsx'
-import AbilitiesTab from './pages/pokedex/AbilitiesTab.jsx'
-import MovesTab from './pages/pokedex/MovesTab.jsx'
-import PokemonTab from './pages/pokedex/PokemonTab.jsx'
-import TypesTab from './pages/pokedex/TypesTab.jsx'
-import ReleaseNotes from './pages/ReleaseNotes.jsx'
-import Dashboard, { TestRun as DashboardRun } from './pages/test/Test.jsx'
-import OverlayPage from './pages/test/OverlayPage.jsx'
+import HomeSoon from './pages/prod/HomeSoon.jsx'
+import Login, { useSession } from './pages/prod/Login.jsx'
+import Pokedex from './pages/prod/Pokedex.jsx'
+import AbilitiesTab from './pages/prod/pokedex/AbilitiesTab.jsx'
+import MovesTab from './pages/prod/pokedex/MovesTab.jsx'
+import PokemonTab from './pages/prod/pokedex/PokemonTab.jsx'
+import TypesTab from './pages/prod/pokedex/TypesTab.jsx'
+import ReleaseNotes from './pages/prod/ReleaseNotes.jsx'
+import Dashboard, { DashboardRun } from './pages/prod/dashboard/Dashboard.jsx'
+import OverlayPage from './pages/prod/dashboard/OverlayPage.jsx'
 
 /** Header + page frame for every normal page. Logged out: the login page instead. */
 function Layout() {
@@ -28,11 +29,10 @@ function Layout() {
   )
 }
 
-// Old Test-tab links keep working.
-function OldRunLink() {
-  const { runName } = useParams()
-  return <Navigate to={`/dashboard/run/${encodeURIComponent(runName)}`} replace />
-}
+// Test playground (src/pages/test): only downloaded when opened, so prod never loads its code or styles.
+const Test = lazy(() => import('./pages/test/Test.jsx'))
+const TestRun = lazy(() => import('./pages/test/Test.jsx').then((m) => ({ default: m.TestRun })))
+const loading = <p className="status">Loading…</p>
 
 export default function App() {
   return (
@@ -53,8 +53,8 @@ export default function App() {
             <Route path="abilities/:abilityName" element={<AbilitiesTab />} />
             <Route path="moves" element={<MovesTab />} />
           </Route>
-          <Route path="/test" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/test/run/:runName" element={<OldRunLink />} />
+          <Route path="/test" element={<Suspense fallback={loading}><Test /></Suspense>} />
+          <Route path="/test/run/:runName" element={<Suspense fallback={loading}><TestRun /></Suspense>} />
         </Route>
       </Routes>
     </BrowserRouter>

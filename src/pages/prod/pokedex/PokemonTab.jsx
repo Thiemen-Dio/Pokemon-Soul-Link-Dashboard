@@ -7,12 +7,12 @@ import {
   matchesQuery,
   regionOf,
   spriteUrl,
-} from '../../api/pokeapi.js'
-import { getRegionalForms } from '../../api/pokeapiGraphql.js'
-import { STARTERS } from '../../components/starters.js'
-import { GenerationPicker, PickerRow, TypePicker } from '../../components/Pickers.jsx'
-import PokemonDetail from '../../components/PokemonDetail.jsx'
-import TypeLink from '../../components/TypeLink.jsx'
+} from '../../../api/pokeapi.js'
+import { getRegionalForms } from '../../../api/pokeapiGraphql.js'
+import { STARTERS } from '../../../components/starters.js'
+import { GenerationPicker, PickerRow, TypePicker } from '../../../components/Pickers.jsx'
+import PokemonDetail from '../../../components/PokemonDetail.jsx'
+import TypeLink from '../../../components/TypeLink.jsx'
 
 export default function PokemonTab() {
   const [gen, setGen] = useState(1)

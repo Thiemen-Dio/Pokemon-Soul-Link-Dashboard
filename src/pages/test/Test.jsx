@@ -1,4 +1,5 @@
-// Dashboard (was the Test tab): /dashboard = home across all runs, /dashboard/run/:name = one run.
+// Test playground: a copy of the prod dashboard to try new ideas on. /test = all runs, /test/run/:name = one run.
+// Same database as prod: saving here changes the real runs.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { chartForGeneration, defensiveMatchups, displayName, getTypeData, spriteUrl, TYPE_COLORS } from '../../api/pokeapi.js'
@@ -6,7 +7,7 @@ import { getEvolutionFamilies, getGames, getLearnset, getMoves, getTypeRoster, r
 import { getEncounters, getRuns, saveEncounter, subscribeToRun } from '../../api/soullink.js'
 import { gameLabel } from '../../api/games.js'
 import TypeBadge from './TypeBadge.jsx'
-import { Run } from '../Home.jsx'
+import { Run } from './RunLog.jsx'
 import { PLAYERS, TEAM_SIZE, areaRows, primaryType, teamClash } from '../../soullink/rules.js'
 import { GIFTS, LEVEL_CAPS, catches, getAreaEncounters, getNextEvolutions, locationSlug, logEncounters, logSetsFor, parseRandomizerLog, teamPrimaryTypes, timeAgo, versionOf } from './data.js'
 import { STARTERS } from '../../components/starters.js'
@@ -17,7 +18,7 @@ import MonCard from './MonCard.jsx'
 import './test.css'
 
 const RUN_STATE = { active: 'In progress', won: 'Beaten', lost: 'Lost' }
-const runLink = (r) => `/dashboard/run/${encodeURIComponent(r.name)}`
+const runLink = (r) => `/test/run/${encodeURIComponent(r.name)}`
 
 /** Pokémon data every page needs: roster (names, Gen types) and evolution families. */
 function usePokemonData() {
@@ -196,10 +197,10 @@ export function TestRun() {
 
   if (error) return <p className="status error">{error}</p>
   if (!runs) return <p className="status">Loading…</p>
-  if (!run) return <p className="status">No run called “{runName}”. <Link to="/dashboard">All runs</Link></p>
+  if (!run) return <p className="status">No run called “{runName}”. <Link to="/test">All runs</Link></p>
   return (
     <section className="test-page">
-      <Link to="/dashboard" className="back-link">← All runs</Link>
+      <Link to="/test" className="back-link">← All runs</Link>
       <nav className="test-jump" aria-label="Sections">
         {SECTIONS.map(([group, items]) => (
           <div key={group} className="jump-group">

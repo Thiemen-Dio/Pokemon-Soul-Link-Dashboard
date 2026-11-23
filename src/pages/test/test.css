@@ -1,4 +1,6 @@
-/* Test tab only. */
+/* Test playground. Starts as a copy of prod's dashboard.css.
+   This file only loads when /test is opened, but then it applies to the whole page,
+   so put every changed rule under .test-page (e.g. ".test-page .planner-mon") to keep prod untouched. */
 .test-page .page-head { margin-bottom: 0.25rem; }
 .test-jump { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 1rem 0 1.5rem; }
 .test-jump a {

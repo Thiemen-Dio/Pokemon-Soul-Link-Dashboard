@@ -1,9 +1,9 @@
 // /overlay?run=JetBlack — the team strip for OBS (Browser Source). See-through background,
 // updates live when either player changes something. Read-only.
 import { useEffect, useState } from 'react'
-import { spriteUrl } from '../../api/pokeapi.js'
-import { getEncounters, getRuns, subscribeToRun } from '../../api/soullink.js'
-import './test.css'
+import { spriteUrl } from '../../../api/pokeapi.js'
+import { getEncounters, getRuns, subscribeToRun } from '../../../api/soullink.js'
+import './dashboard.css'
 
 export default function OverlayPage() {
   const [run, setRun] = useState(null)
