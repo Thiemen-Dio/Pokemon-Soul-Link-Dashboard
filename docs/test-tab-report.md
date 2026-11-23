@@ -2,6 +2,15 @@
 
 Round 1: 18 Nov 2026, 18:32–18:58. Round 2 (your feedback): 18 Nov 2026, evening. Round 3: 23 Nov 2026. Newest round first.
 
+## Rounds 7–9: card polish, hard lock, Best option, items switch (23 Nov 2026)
+
+- Nature next to ability; Pokédex button next to the name. Clicking outside closes an open planner card and the item list.
+- **Shared primary types hard-locked**: the run log refuses a clashing pair on the team (a new catch that would clash goes to the PC, with a message); an evolution that causes a clash sends the pair to the PC; the planner takes clashing pairs off the plan with a note. JetBlack (Route 13 vs Route 8) and Randomized Emerald (Route 127 vs Route 111) already break it in the real run: fix those in the run log.
+- **Best option** button (all-round: best average rank over every strategy), the single-strategy choices stay below. Fuller teams always win; suggestions are repeatable (same pairs → same answer).
+- Stats: PokémonDB-style bars (colour by value), nature on the stat name: **+Atk** red, **−SpA** blue. Item: small icon only in the planner, × in the card to take it off.
+- **Count held items** switch in the planner: off = teams and numbers worked out as if nobody holds an item.
+- Checks: self-checks pass (added: fuller teams win, repeatable suggestions, nature maths). Hidden browser: lock notices on both runs, Best option 0.25 s on 58 pairs, click-outside, stat colours, item ×, switch on/off. No page errors. Not tested: saving to the real run.
+
 ## Round 6: starting moves, nature, items, Pokédex button (23 Nov 2026)
 
 | Your note | What I did |

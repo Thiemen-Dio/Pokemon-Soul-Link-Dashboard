@@ -100,3 +100,9 @@ const roomy = [fastOne, tankOne, legend, weakFill]
 assert.equal(topTeams(roomy, [], chart, 'fast', 1, Math.random, 4)[0].length, 4)
 assert.equal(bestOverall(roomy, [], chart, 1, Math.random, 4)[0].length, 4)
 console.log('full team checks passed')
+
+// Same pairs, same suggestions.
+const { seededRandom } = await import('./planner.js')
+const key = (t) => t.map((p) => p.area).join()
+assert.equal(key(bestOverall(roomy, [], chart, 1, seededRandom(), 3)[0]), key(bestOverall(roomy, [], chart, 1, seededRandom(), 3)[0]))
+console.log('repeatable checks passed')

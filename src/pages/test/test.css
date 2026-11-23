@@ -468,14 +468,11 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
 .build-pair .ability-select { width: 100%; min-width: 0; }
 .planner-actions { grid-template-columns: 1fr 1fr; }
 
-/* Round 8: two stat styles to compare */
-.stats-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
-.stats-head .tabs button { font-size: 0.8rem; }
-/* Game style: calm grey bars; only the nature's stats get colour (red up, blue down). */
-.stat-style-game .stat-bar span { background: var(--border-strong); }
-.stat-style-game tr.nat-up th, .stat-style-game tr.nat-up .stat-value { color: #e03131; font-weight: 700; }
-.stat-style-game tr.nat-down th, .stat-style-game tr.nat-down .stat-value { color: #1c7ed6; font-weight: 700; }
-.stat-style-game tr.nat-up .stat-bar span { background: #e03131; }
-.stat-style-game tr.nat-down .stat-bar span { background: #1c7ed6; }
-/* PokémonDB style: bar colour = how high the stat is; nature is the + / − in front of the name. */
-.stat-style-pokedb tr.nat-up th, .stat-style-pokedb tr.nat-down th { color: var(--text); font-weight: 700; }
+/* Round 9: nature on the stat name, item icon, items switch */
+.mon-card .stats tr.nat-up th { color: #e03131; font-weight: 700; }
+.mon-card .stats tr.nat-down th { color: #1c7ed6; font-weight: 700; }
+.held-icon { width: 24px; height: 24px; }
+.planner-mon .held { display: none; }
+.item-row .unplace { flex: none; }
+.items-switch { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+.items-switch input { accent-color: var(--accent); width: 1rem; height: 1rem; }

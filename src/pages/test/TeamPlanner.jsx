@@ -6,7 +6,7 @@ import { rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
 import TypeBadge from './TypeBadge.jsx'
 import { PLAYERS, primaryType } from '../../soullink/rules.js'
 import { catches, getMonStats } from './data.js'
-import { STRATEGIES, TEAM_SLOTS, bestOverall, fits, isValid, randomTeam, scoreTeam, suggestItems, topTeams } from './planner.js'
+import { STRATEGIES, TEAM_SLOTS, bestOverall, seededRandom, fits, isValid, randomTeam, scoreTeam, suggestItems, topTeams } from './planner.js'
 import MonCard, { useClickOutside } from './MonCard.jsx'
 import { itemLabel, itemSprite } from './items.js'
 
@@ -32,6 +32,10 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
     }),
   })), [rows, rosterById, gen, stats]) // eslint-disable-line react-hooks/exhaustive-deps
   const byArea = Object.fromEntries(pool.map((p) => [p.area, p]))
+  // Teams can be worked out with or without held items.
+  const [withItems, setWithItems] = useState(true)
+  const noItems = (t) => t.map((p) => ({ ...p, mons: p.mons.map((m) => ({ ...m, item: null })) }))
+  const calcPool = useMemo(() => (withItems ? pool : noItems(pool)), [pool, withItems])
 
   // Start from the run's real team.
   const [slots, setSlots] = useState(() => pad(alive.filter((r) => r.status === 'team').map((r) => r.area)))
@@ -71,8 +75,10 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
   // Each option also hands out the unpinned items where they help that team most.
   // 'best' = best all-round over every strategy; its items are handed out for the balanced score.
   const suggest = (strategy) => {
-    const teams = strategy === 'best' ? bestOverall(pool, pinned(), chart) : topTeams(pool, pinned(), chart, strategy)
-    const list = teams.map((t) => suggestItems(t, pool, chart, strategy === 'best' ? 'balanced' : strategy))
+    // Same pairs, by area, from the pool the calculation uses.
+    const kept = pinned().map((p) => calcPool.find((q) => q.area === p.area))
+    const teams = strategy === 'best' ? bestOverall(calcPool, kept, chart, 5, seededRandom()) : topTeams(calcPool, kept, chart, strategy, 5, seededRandom())
+    const list = teams.map((t) => (withItems ? suggestItems(t, calcPool, chart, strategy === 'best' ? 'balanced' : strategy) : { team: t, swaps: [] }))
     setOptions({ strategy, list, i: 0 })
     fill(list[0].team)
   }
@@ -86,7 +92,7 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
   // With a suggestion showing, its item swaps count in the numbers.
   const shownTeam = options && options.list[options.i].team.map((p) => p.area).join() === team.map((p) => p.area).join() ? options.list[options.i].team : team
   const swaps = shownTeam === team ? [] : options.list[options.i].swaps
-  const score = chart ? scoreTeam(shownTeam, chart) : null
+  const score = chart ? scoreTeam(withItems ? shownTeam : noItems(shownTeam), chart) : null
 
   // Rule check, live for the plan.
   const caught = catches(encounters)
@@ -153,6 +159,10 @@ export default function TeamPlanner({ run, gen, names, rows, encounters, rosterB
           <button type="button" className="primary-button" disabled={!chart} onClick={() => suggest('best')} aria-pressed={options?.strategy === 'best'}>Best option</button>
           <button type="button" className="chip-button" onClick={() => { setOptions(null); fill(randomTeam(pool, pinned())) }}>Randomize</button>
         </div>
+        <label className="items-switch">
+          <input type="checkbox" checked={withItems} onChange={(e) => { setWithItems(e.target.checked); setOptions(null) }} />
+          Count held items
+        </label>
         <span className="mini-label">Or best at one thing</span>
         <div className="strategy-chips" role="group" aria-label="Suggest a team">
           {Object.entries(STRATEGIES).map(([k, st]) => (
@@ -218,7 +228,7 @@ function MonTile({ mon, onClick, open }) {
         <strong>{mon.nickname || mon.label}</strong>
         {mon.nickname && <span className="status small-print">{mon.label}</span>}
         <span className="types">{mon.types.map((t) => <TypeBadge key={t} type={t} small />)}</span>
-        {mon.item && <span className="small-print held"><img src={itemSprite(mon.item)} alt="" width="20" height="20" />{itemLabel(mon.item)}{mon.itemPinned && ' · pinned'}</span>}
+        {mon.item && <img className="held-icon" src={itemSprite(mon.item)} alt={itemLabel(mon.item)} title={`${itemLabel(mon.item)}${mon.itemPinned ? ' (pinned)' : ''}`} width="24" height="24" />}
         {mon.stats && <span className="status small-print">BST {mon.stats.bst} · Spe {mon.stats.speed}{mon.stats.legendary && ' · ★ Legendary'}</span>}
       </span>
     </button>

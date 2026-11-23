@@ -45,10 +45,7 @@ export function useClickOutside(ref, onClose, active) {
   }, [ref, onClose, active])
 }
 
-// Two ways to show stats, to compare: 'game' (grey bars, nature stat red ▲ / blue ▼)
-// or 'pokedb' (bars coloured by value like pokemondb.net, nature as + / −). Remembered per browser.
-const STAT_STYLE_KEY = 'test-stat-style'
-const readStatStyle = () => { try { return localStorage.getItem(STAT_STYLE_KEY) || 'game' } catch { return 'game' } }
+// Stat bars coloured by value like pokemondb.net; the nature shows on the stat name (+ red, − blue).
 // pokemondb.net bands, low to high (shortcut: colours from memory, their stylesheet wasn't readable).
 const valueColor = (v) => (v < 30 ? '#f34444' : v < 60 ? '#ff7f0f' : v < 90 ? '#ffdd57' : v < 120 ? '#a0e515' : v < 150 ? '#23cd5e' : '#00c2b8')
 
@@ -101,8 +98,6 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
 
   const [adding, setAdding] = useState(false) // the empty move block being typed in
   const [moveText, setMoveText] = useState('')
-  const [statStyle, setStatStyleState] = useState(readStatStyle)
-  const setStatStyle = (v) => { setStatStyleState(v); try { localStorage.setItem(STAT_STYLE_KEY, v) } catch { /* this card only */ } }
   const [itemsOpen, setItemsOpen] = useState(false)
   const itemRef = useRef(null)
   const closeItems = useMemo(() => () => setItemsOpen(false), [])
@@ -200,24 +195,15 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
         </div>
       )}
 
-      <div className="stats-head">
-        <span className="mini-label">Stats</span>
-        <div className="tabs" role="group" aria-label="Stat colours">
-          <button type="button" aria-pressed={statStyle === 'game'} onClick={() => setStatStyle('game')}>Game style</button>
-          <button type="button" aria-pressed={statStyle === 'pokedb'} onClick={() => setStatStyle('pokedb')}>PokémonDB style</button>
-        </div>
-      </div>
-      {!build.nature && <span className="status small-print">Pick a nature to see how each style marks it.</span>}
+      <span className="mini-label">Stats</span>
       {eff ? (
-        <table className={`stats stat-style-${statStyle}`}>
+        <table className="stats">
           <tbody>
             {STAT_KEYS.map((k) => (
               <tr key={k} className={k === natUp ? 'nat-up' : k === natDown ? 'nat-down' : ''} title={k === natUp ? 'Raised by its nature (+10%)' : k === natDown ? 'Lowered by its nature (−10%)' : undefined}>
-                <th>{statStyle === 'pokedb'
-                  ? <>{k === natUp ? '+' : k === natDown ? '−' : ''}{STAT_LABELS[k]}</>
-                  : <>{STAT_LABELS[k]}{k === natUp && ' ▲'}{k === natDown && ' ▼'}</>}</th>
+                <th>{k === natUp ? '+' : k === natDown ? '−' : ''}{STAT_LABELS[k]}</th>
                 <td className="stat-value">{eff[k]}{itemBoost[k] && <img className="stat-item" src={itemSprite(build.item)} alt="" title={`Boosted by ${itemLabel(build.item)}`} width="18" height="18" />}</td>
-                <td className="stat-bar"><span style={{ width: `${Math.min(100, (eff[k] / 255) * 100)}%`, background: statStyle === 'pokedb' ? valueColor(eff[k]) : undefined }} /></td>
+                <td className="stat-bar"><span style={{ width: `${Math.min(100, (eff[k] / 255) * 100)}%`, background: valueColor(eff[k]) }} /></td>
               </tr>
             ))}
             <tr className="total"><th>Total</th><td className="stat-value">{eff.bst}</td><td className="small-print">{eff.bst !== stats.bst && `base ${stats.bst}`}</td></tr>
@@ -267,6 +253,7 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
             {build.item ? <img src={itemSprite(build.item)} alt={itemLabel(build.item)} width="32" height="32" /> : '+'}
           </button>
           <span>{build.item ? itemLabel(build.item) : <span className="status small-print">No item</span>}</span>
+          {build.item && <button type="button" className="unplace" onClick={() => pickItem(null)} aria-label={`Take ${itemLabel(build.item)} off`} title="Take the item off">×</button>}
           {build.item && (
             <button type="button" className={build.itemPinned ? 'pin on' : 'pin'} aria-pressed={!!build.itemPinned} onClick={() => saveBuild({ itemPinned: !build.itemPinned })}
               title={build.itemPinned ? 'Unpin: the planner may suggest moving it' : 'Pin: this item stays on this Pokémon in suggestions'}>

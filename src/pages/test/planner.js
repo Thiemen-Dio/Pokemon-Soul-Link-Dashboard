@@ -44,6 +44,17 @@ export function scoreTeam(team, chart) {
   return { score: bst / 10 + coverage * 3 + resisted * 2 - penalty * 4, bst: Math.round(bst), coverage, resisted, weakSpots }
 }
 
+/** Repeatable random numbers (mulberry32): the same pairs always give the same suggestions. */
+export function seededRandom(seed = 1) {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
 /** Fill the free slots at random with pairs that keep the rules. */
 export function randomTeam(pool, pinned, rand = Math.random, size = TEAM_SLOTS) {
   const team = [...pinned]
