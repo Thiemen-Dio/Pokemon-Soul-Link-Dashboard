@@ -1,5 +1,5 @@
 Test tab assets (Pokémon is © Nintendo / Creatures / GAME FREAK; used for a private fan dashboard).
-- wallpapers/: original Gen 3-5 PC box wallpapers as packaged in "Canon PC Wallpapers [Cobblemon]"
+  wallpapers/: original Gen 3 5 PC box wallpapers as packaged in "Canon PC Wallpapers [Cobblemon]"
   by dhi_awesome (MPL-2.0), https://modrinth.com/project/chI5vWhB
 - icons/team.png (Hisuian Poké Ball), icons/grave.png (Odd Keystone): bag item icons (outline style)
   from PokéSprite by msikma, https://github.com/msikma/pokesprite
