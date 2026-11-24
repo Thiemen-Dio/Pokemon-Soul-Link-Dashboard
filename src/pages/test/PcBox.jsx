@@ -38,15 +38,9 @@ function makeViews(rows, me) {
   }
 }
 
-// Pixel icons (Pokémon Center PC, Hisuian Poké Ball, Odd Keystone) and Gen 3-5 PC wallpapers, see public/test/CREDITS.txt.
-const ICONS = { party: '/test/icons/team.png', grave: '/test/icons/grave.png' }
-// PC icon to try out: the PC from each game up to Gen 5 (Gen 5 recreated: 3D in game) and a few extras.
-const PC_ICONS = {
-  'gen1-red': 'Red/Blue', 'gen2-crystal': 'Crystal', 'gen3-emerald': 'Emerald', 'gen3-frlg': 'FireRed/LeafGreen', 'gen4-dppt': 'Diamond/Pearl', 'gen5-bw': 'Black/White',
-  'extra-center-drawn': 'Center PC (drawn)', 'extra-storage-box': 'Pokémon Box', 'extra-box-link': 'Box Link', 'extra-porygon': 'Porygon', 'extra-rotom': 'Rotom',
-}
-// ?v=3: bump when an icon changes, so browsers don't show a cached old one (v5: Gen 4 as tall as the keystone).
-const pcIconUrl = (k) => `/test/icons/pc/${k}.${k === 'extra-center-drawn' ? 'svg' : 'png'}?v=5`
+// Pixel icons (Diamond/Pearl Pokémon Center PC, Hisuian Poké Ball, Odd Keystone) and Gen 3-5 PC wallpapers, see public/test/CREDITS.txt.
+// ?v=6 makes browsers drop cached older versions of the PC icon.
+const ICONS = { pc: '/test/icons/pc.png?v=6', party: '/test/icons/team.png', grave: '/test/icons/grave.png' }
 const WALLPAPERS = {
   box: ['forest_e', 'savanna_e', 'river_e', 'sky_e', 'beach_e', 'seafloor_e', 'desert_e', 'snow_e', 'forest_dppt', 'river_dppt', 'sky_dppt', 'dp_backyard'],
   party: ['pokecenter_rs', 'pokecenter_e', 'pokecenter_frlg', 'pokecenter_dppt', 'pokecenter_bw', 'monochrome_bw1', 'polka_dot_e'],
@@ -61,8 +55,6 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
   const partner = me === 'p1' ? 'p2' : 'p1'
   const [view, setView] = useState('box') // box | party | grave
   const [boxAt, setBoxAt] = useState(0)
-  const [pcIcon, setPcIconState] = useState(() => { try { return localStorage.getItem('test-pc-icon') ?? 'gen3-emerald' } catch { return 'gen3-emerald' } })
-  const setPcIcon = (k) => { setPcIconState(k); try { localStorage.setItem('test-pc-icon', k) } catch { /* not remembered */ } }
   // A new random wallpaper (from that view's mood) every time a box is opened or switched.
   const wall = useMemo(() => randomWall(view), [view, boxAt, me]) // eslint-disable-line react-hooks/exhaustive-deps
   const [hover, setHover] = useState(null) // area
@@ -121,7 +113,7 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
               <button type="button" onClick={() => go(1)} disabled={boxes.length < 2} aria-label="Next box">▶</button>
             </div>
             <button type="button" className="pc-view" aria-pressed={view === 'box'} onClick={() => show('box')} title="PC boxes">
-              <img src={pcIconUrl(PC_ICONS[pcIcon] ? pcIcon : 'gen3-emerald')} alt="" width="48" height="48" />
+              <img src={ICONS.pc} alt="" width="48" height="48" />
             </button>
             <button type="button" className="pc-view" aria-pressed={view === 'party'} onClick={() => show('party')} title="Current team">
               <img src={ICONS.party} alt="" width="48" height="48" />
@@ -147,15 +139,6 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
             })}
           </ul>
         </div>
-      </div>
-
-      <div className="tabs icon-try" role="group" aria-label="PC icon to try">
-        <span className="status small-print">PC icon (try-out):</span>
-        {Object.entries(PC_ICONS).map(([k, label]) => (
-          <button key={k} type="button" aria-pressed={pcIcon === k} onClick={() => setPcIcon(k)}>
-            <img src={pcIconUrl(k)} alt="" width="32" height="32" /> {label}
-          </button>
-        ))}
       </div>
 
       {sel && (

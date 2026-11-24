@@ -3,12 +3,6 @@ Test tab assets (Pokémon is © Nintendo / Creatures / GAME FREAK; used for a pr
   by dhi_awesome (MPL-2.0), https://modrinth.com/project/chI5vWhB
 - icons/team.png (Hisuian Poké Ball), icons/grave.png (Odd Keystone): bag item icons (outline style)
   from PokéSprite by msikma, https://github.com/msikma/pokesprite
-- icons/pc/ (PC icon options, white outline added):
-  gen1-red, gen2-crystal, gen3-emerald, gen3-frlg: the PC as it stands in each game's Pokémon Center 1F,
-    rebuilt from the original maps and tilesets in the pret decompilations
-    (pokered, pokecrystal, pokeemerald, pokefirered), https://github.com/pret
-  gen4-dppt: the Diamond/Pearl Pokémon Center PC from The Spriters Resource,
-    https://www.spriters-resource.com/ds_dsi/pokemondiamondpearl/asset/6974/ (source: docs/sprite-sources/gen4_pc.png)
-  gen5-bw: pixel recreation (the game draws the PC as a 3D model)
-  extra-center-drawn: drawn for this dashboard
-  extra-storage-box, extra-box-link: PokéSprite item icons; extra-porygon, extra-rotom: Gen 7 box icons via PokeAPI
+- icons/pc.png: the Diamond/Pearl Pokémon Center PC from The Spriters Resource,
+  https://www.spriters-resource.com/ds_dsi/pokemondiamondpearl/asset/6974/ (source: docs/sprite-sources/gen4_pc.png),
+  white outline added, sized to match the other two icons
