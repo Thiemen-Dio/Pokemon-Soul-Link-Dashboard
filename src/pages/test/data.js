@@ -144,7 +144,7 @@ export async function getMonStats(ids) {
 // ---- Universal Pokémon Randomizer ZX log ----
 
 const words = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
-const squash = (s) => s.toLowerCase().replace(/♀/g, 'f').replace(/♂/g, 'm').replace(/[^a-z0-9]/g, '')
+const squash = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/♀/g, 'f').replace(/♂/g, 'm').replace(/[^a-z0-9]/g, '')
 
 /**
  * The "--Wild Pokemon--" section of a randomizer log: [{ name: 'Route 1 Grass/Cave', mons: [{ name, min, max }] }].
@@ -160,10 +160,22 @@ export function parseRandomizerLog(text) {
     if (/^--.*--$/.test(line.trim())) break
     const head = line.match(/^Set #\d+(?: - (.*?))? \(rate=\d+\)/)
     if (head) { sets.push({ name: head[1] ?? `Set ${sets.length + 1}`, mons: [] }); continue }
-    const mon = line.match(/^(?:\w* ?SOS: )?\s*(.+?) Lvs? ?(\d+)(?:-(\d+))?/)
+    if (/^\s*(?:\w+ )?SOS: /.test(line)) continue // Gen 7 SOS allies ("SOS:", "Rain SOS:"): not a first encounter
+    const mon = line.match(/^\s*(.+?) Lvs? ?(\d+)(?:-(\d+))?/)
     if (mon && sets.length) sets.at(-1).mons.push({ name: mon[1].trim(), min: Number(mon[2]), max: Number(mon[3] ?? mon[2]) })
   }
   return sets
+}
+
+/** The areas in a log, in log order: "Route 2, Table 1 (Day)" and "Route 2, Table 2 (Night)" are one area, "Route 2". */
+export function logAreas(sets) {
+  return [...new Set(sets.map((s) => s.name.replace(/, Table \d+.*$/, '')))]
+}
+
+// The randomizer shortens forms: "Vulpix-A" = Alolan Vulpix, "Rotom-W" = Wash Rotom (counted as Rotom).
+const logSlugs = (name) => {
+  const base = name.replace(/-[A-Za-z0-9]+$/, '')
+  return [squash(name), /-A$/.test(name) && squash(`${base}alola`), squash(base)]
 }
 
 /** Sets in the log that belong to an area: "Route 1 Grass/Cave" belongs to "Route 1", not to "Route 10". */
@@ -178,9 +190,9 @@ export function logEncounters(area, sets, roster) {
   for (const e of roster) bySlug[squash(e.name)] ??= e // species come before forms, so they win
   const byMon = {}
   for (const s of logSetsFor(area, sets)) {
-    const where = s.name.slice(area.length).trim() || 'wild'
+    const where = s.name.slice(area.length).replace(/^[\s,]+/, '') || 'wild'
     for (const m of s.mons) {
-      const e = bySlug[squash(m.name)]
+      const e = logSlugs(m.name).map((k) => k && bySlug[k]).find(Boolean)
       if (!e) continue
       const x = (byMon[e.id] ??= { id: e.id, name: e.name, dex: e.dex, min: 99, max: 0, methods: {}, where: new Set() })
       x.min = Math.min(x.min, m.min)

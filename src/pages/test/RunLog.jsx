@@ -32,7 +32,7 @@ const ENCOUNTER_FILTERS = {
  * compact: rows fold to one line, only the next area (or the one clicked) is open,
  * with renderNext(row, save) shown under it. Test copy of the run log.
  */
-export function Run({ run, encounters, setEncounters, roster, families, onError, onRunChange, compact, renderNext }) {
+export function Run({ run, encounters, setEncounters, roster, families, onError, onRunChange, compact, renderNext, logAreas, layout }) {
   const gen = run.generation
   const names = { p1: run.player1_name, p2: run.player2_name }
 
@@ -40,7 +40,7 @@ export function Run({ run, encounters, setEncounters, roster, families, onError,
   const options = useMemo(() => (roster ?? []).filter((e) => e.generation <= gen), [roster, gen])
   const rosterById = useMemo(() => Object.fromEntries((roster ?? []).map((e) => [e.id, e])), [roster])
   const conflicts = useMemo(() => typeConflicts(encounters, rosterById, gen), [encounters, rosterById, gen])
-  const rows = useMemo(() => areaRows(run.base_game, encounters), [run.base_game, encounters])
+  const rows = useMemo(() => areaRows(run.base_game, encounters, logAreas), [run.base_game, encounters, logAreas])
 
   async function save(row, changes) {
     const merged = { ...row, ...changes }
@@ -91,6 +91,16 @@ export function Run({ run, encounters, setEncounters, roster, families, onError,
   // null = follow the next area still to catch.
   const [openArea, setOpenArea] = useState(null)
   const current = openArea ?? rows.find((r) => r.status === 'pending')?.area
+  // Layout try-out (Test only). a: routes unlock one by one; b: only the next route, done ones behind a button.
+  const [showDone, setShowDone] = useState(false)
+  const nextAt = rows.findIndex((r) => r.status === 'pending')
+  const upTo = nextAt < 0 ? rows.length : nextAt + 1
+  const before = rows.slice(0, upTo).filter((r) => r.area !== current)
+  const locked = rows.length - upTo
+  const listed = !compact || !layout || layout === 'now' || layout === 'c' ? shown
+    : layout === 'a' ? rows.slice(0, upTo).concat(rows.filter((r, i) => i >= upTo && r.area === current))
+    : rows.filter((r) => r.area === current || (showDone && before.includes(r)))
+  const lean = compact && (layout === 'a' || layout === 'b')
   const areaRow = (row) => (
     <AreaRow
       key={row.area}
@@ -159,14 +169,14 @@ export function Run({ run, encounters, setEncounters, roster, families, onError,
         </ul>
       )}
 
-      <h4 className="section-title">Encounters</h4>
-      <div className="tabs encounter-filter" role="group" aria-label="Show encounters">
+      <h4 className="section-title">Encounters{lean && <span className="status small-print"> · {upTo - (nextAt < 0 ? 0 : 1)} of {rows.length} done</span>}</h4>
+      {!lean && <div className="tabs encounter-filter" role="group" aria-label="Show encounters">
         {Object.entries(ENCOUNTER_FILTERS).map(([id, f]) => (
           <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>
             {f.label}
           </button>
         ))}
-      </div>
+      </div>}
       <datalist id={`mons-gen-${gen}`}>
         {options.map((e) => <option key={e.id} value={e.label} />)}
       </datalist>
@@ -178,7 +188,12 @@ export function Run({ run, encounters, setEncounters, roster, families, onError,
           <span>Status</span>
           <span />
         </div>
-        {shown.map((row) => compact && row.area !== current ? (
+        {layout === 'b' && compact && before.length > 0 && (
+          <button type="button" className="chip-button fold-back" onClick={() => setShowDone((s) => !s)}>
+            {showDone ? 'Hide done routes' : `Show ${before.length} earlier route${before.length === 1 ? '' : 's'}`}
+          </button>
+        )}
+        {listed.map((row) => compact && row.area !== current ? (
           <button key={row.area} type="button" className={`encounter-row folded status-${row.status}${conflicts[row.id] ? ' clash' : ''}`} onClick={() => setOpenArea(row.area)}>
             <span className="area-name">{row.area}</span>
             {PLAYERS.map((p) => (
@@ -197,6 +212,7 @@ export function Run({ run, encounters, setEncounters, roster, families, onError,
             {renderNext?.(row, (changes) => save(row, changes))}
           </div>
         ) : areaRow(row))}
+        {layout === 'a' && compact && locked > 0 && <p className="status small-print locked-note">🔒 {locked} more routes, unlocked one by one as you fill or skip the next.</p>}
       </div>
       <AddArea
         existing={rows}

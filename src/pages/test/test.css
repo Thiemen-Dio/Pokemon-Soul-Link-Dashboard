@@ -479,3 +479,13 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
 .items-switch { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
 .items-switch input { accent-color: var(--accent); width: 1rem; height: 1rem; }
 .back-run { justify-self: start; width: fit-content; margin-bottom: 0.75rem; text-decoration: none; }
+
+/* Run log layout try-out: switch, locked note, compact Pokémon chips (C) */
+.layout-pick { margin: 0 1.4rem 0.75rem; flex-wrap: wrap; }
+.locked-note { margin: 0.4rem 0 0; padding: 0.5rem 0.7rem; border: 1px dashed var(--border-strong); border-radius: 10px; }
+.mon-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0; padding: 0; list-style: none; }
+.mon-chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.15rem 0.35rem 0.15rem 0.1rem; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 0.85rem; cursor: help; }
+.mon-chip.is-dupe { opacity: 0.45; }
+.mon-chip.is-dupe img { filter: grayscale(1); }
+.chip-mini { width: 1.5rem; height: 1.5rem; padding: 0; border: 0; border-radius: 50%; background: var(--track); font: inherit; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+.chip-mini:hover { background: var(--accent); color: #fff; }
