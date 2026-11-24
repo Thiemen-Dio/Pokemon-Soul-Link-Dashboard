@@ -39,8 +39,8 @@ function makeViews(rows, me) {
 }
 
 // Pixel icons (Diamond/Pearl Pokémon Center PC, Hisuian Poké Ball, Odd Keystone) and Gen 3-5 PC wallpapers, see public/test/CREDITS.txt.
-// ?v=6 makes browsers drop cached older versions of the PC icon.
-const ICONS = { pc: '/test/icons/pc.png?v=6', party: '/test/icons/team.png', grave: '/test/icons/grave.png' }
+// ?v=7 makes browsers drop cached older versions of the PC icon.
+const ICONS = { pc: '/test/icons/pc.png?v=7', party: '/test/icons/team.png', grave: '/test/icons/grave.png' }
 const WALLPAPERS = {
   box: ['forest_e', 'savanna_e', 'river_e', 'sky_e', 'beach_e', 'seafloor_e', 'desert_e', 'snow_e', 'forest_dppt', 'river_dppt', 'sky_dppt', 'dp_backyard'],
   party: ['pokecenter_rs', 'pokecenter_e', 'pokecenter_frlg', 'pokecenter_dppt', 'pokecenter_bw', 'monochrome_bw1', 'polka_dot_e'],
