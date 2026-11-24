@@ -45,8 +45,8 @@ const PC_ICONS = {
   'gen1-red': 'Red/Blue', 'gen2-crystal': 'Crystal', 'gen3-emerald': 'Emerald', 'gen3-frlg': 'FireRed/LeafGreen', 'gen4-dppt': 'Diamond/Pearl', 'gen5-bw': 'Black/White',
   'extra-center-drawn': 'Center PC (drawn)', 'extra-storage-box': 'Pokémon Box', 'extra-box-link': 'Box Link', 'extra-porygon': 'Porygon', 'extra-rotom': 'Rotom',
 }
-// ?v=3: bump when an icon changes, so browsers don't show a cached old one (v3: Gen 4 from The Spriters Resource).
-const pcIconUrl = (k) => `/test/icons/pc/${k}.${k === 'extra-center-drawn' ? 'svg' : 'png'}?v=3`
+// ?v=3: bump when an icon changes, so browsers don't show a cached old one (v4: Gen 4 made less tall).
+const pcIconUrl = (k) => `/test/icons/pc/${k}.${k === 'extra-center-drawn' ? 'svg' : 'png'}?v=4`
 const WALLPAPERS = {
   box: ['forest_e', 'savanna_e', 'river_e', 'sky_e', 'beach_e', 'seafloor_e', 'desert_e', 'snow_e', 'forest_dppt', 'river_dppt', 'sky_dppt', 'dp_backyard'],
   party: ['pokecenter_rs', 'pokecenter_e', 'pokecenter_frlg', 'pokecenter_dppt', 'pokecenter_bw', 'monochrome_bw1', 'polka_dot_e'],

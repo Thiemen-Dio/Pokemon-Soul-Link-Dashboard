@@ -532,7 +532,7 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
   .v-grave .pc-slot .box-icon { filter: grayscale(1) brightness(1.1); opacity: 0.85; }
   .pc-top { display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin: 0 auto 0.7rem; }
   .pc-view { display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; filter: drop-shadow(0 2px 0 rgb(0 0 0 / 0.25)); transition: transform 0.12s, filter 0.12s; }
-  .pc-view img { width: 48px; height: 48px; image-rendering: pixelated; }
+  .pc-view img { width: 48px; height: 48px; object-fit: contain; image-rendering: pixelated; }
   .pc-view:hover { transform: translateY(-2px); }
   .pc-view[aria-pressed='true'] { transform: scale(1.15); filter: drop-shadow(0 0 4px #ffd43b) drop-shadow(0 0 2px #ffd43b) drop-shadow(0 2px 0 rgb(0 0 0 / 0.25)); }
   .pc-view[aria-pressed='true']:hover { transform: scale(1.15) translateY(-2px); }
