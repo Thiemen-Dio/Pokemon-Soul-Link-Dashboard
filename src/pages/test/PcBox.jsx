@@ -45,7 +45,8 @@ const PC_ICONS = {
   'gen1-red': 'Red/Blue', 'gen2-crystal': 'Crystal', 'gen3-emerald': 'Emerald', 'gen3-frlg': 'FireRed/LeafGreen', 'gen4-dppt': 'Diamond/Pearl', 'gen5-bw': 'Black/White',
   'extra-center-drawn': 'Center PC (drawn)', 'extra-storage-box': 'Pokémon Box', 'extra-box-link': 'Box Link', 'extra-porygon': 'Porygon', 'extra-rotom': 'Rotom',
 }
-const pcIconUrl = (k) => `/test/icons/pc/${k}.${k === 'extra-center-drawn' ? 'svg' : 'png'}`
+// ?v=2: the Pokémon Center versions (v1 were the house PCs), so browsers don't show cached old ones.
+const pcIconUrl = (k) => `/test/icons/pc/${k}.${k === 'extra-center-drawn' ? 'svg' : 'png'}?v=2`
 const WALLPAPERS = {
   box: ['forest_e', 'savanna_e', 'river_e', 'sky_e', 'beach_e', 'seafloor_e', 'desert_e', 'snow_e', 'forest_dppt', 'river_dppt', 'sky_dppt', 'dp_backyard'],
   party: ['pokecenter_rs', 'pokecenter_e', 'pokecenter_frlg', 'pokecenter_dppt', 'pokecenter_bw', 'monochrome_bw1', 'polka_dot_e'],
