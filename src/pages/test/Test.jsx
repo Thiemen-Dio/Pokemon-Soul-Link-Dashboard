@@ -200,7 +200,7 @@ export function TestRun() {
   if (!run) return <p className="status">No run called “{runName}”. <Link to="/test">All runs</Link></p>
   return (
     <section className="test-page">
-      <Link to="/test" className="back-link">← All runs</Link>
+      <Link to="/test" className="new-run-button back-run"><span className="new-run-plus" aria-hidden="true">←</span><strong>All runs</strong></Link>
       <nav className="test-jump" aria-label="Sections">
         {SECTIONS.map(([group, items]) => (
           <div key={group} className="jump-group">

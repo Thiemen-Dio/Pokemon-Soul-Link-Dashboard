@@ -239,7 +239,7 @@ a.home-hero:hover, a.home-hero:focus-visible { box-shadow: 0 0 0 3px var(--accen
 .run-card .timeline { margin: 0.2rem 0 0; gap: 0.2rem; }
 .run-card .dot { width: 0.55rem; height: 0.55rem; border-width: 1.5px; }
 
-/* "+ New run" */
+/* "+ New run" (also the "← All runs" button on a run page) */
 .new-run-button {
   display: inline-flex; align-items: center; gap: 0.75rem;
   padding: 0.5rem 1.1rem 0.5rem 0.5rem;
@@ -478,3 +478,4 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
 .item-row .unplace { flex: none; }
 .items-switch { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
 .items-switch input { accent-color: var(--accent); width: 1rem; height: 1rem; }
+.back-run { justify-self: start; width: fit-content; margin-bottom: 0.75rem; text-decoration: none; }
