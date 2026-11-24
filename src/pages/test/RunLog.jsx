@@ -20,6 +20,51 @@ import {
 import { logEncounters } from './data.js'
 
 const OTHER = 'Other…'
+
+/**
+ * A Pokémon field with its own scrollable dropdown (styled like the field, unlike a browser datalist).
+ * Lists `choices` filtered by what's typed, then "Other…" when withOther. Arrow keys + Enter pick, Escape closes.
+ */
+function MonPicker({ label, placeholder, value, choices, withOther, onFocus, onType, onPick, onBlur }) {
+  const [open, setOpen] = useState(false)
+  const [typed, setTyped] = useState(false) // filter only once something is typed, so a filled field still shows all
+  const [at, setAt] = useState(0)
+  const listRef = useRef(null)
+  const text = typed ? value.trim().toLowerCase() : ''
+  // An area's own list is shown whole; the full Pokédex is cut to 80 to stay quick.
+  const found = choices.filter((e) => !text || e.label.toLowerCase().includes(text))
+  const items = withOther ? found : found.slice(0, 80)
+  const all = withOther ? [...items, OTHER] : items
+  useEffect(() => { listRef.current?.children[at]?.scrollIntoView({ block: 'nearest' }) }, [at])
+  const pick = (item) => { setOpen(false); setTyped(false); onPick(item) }
+  return (
+    <div className="mon-picker">
+      <input
+        role="combobox" aria-expanded={open} aria-label={label} placeholder={placeholder} value={value}
+        onFocus={() => { setOpen(true); setTyped(false); setAt(0); onFocus() }}
+        onChange={(e) => { setTyped(true); setOpen(true); setAt(0); onType(e.target.value) }}
+        onBlur={(e) => { setOpen(false); setTyped(false); onBlur(e.target.value) }}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); setAt((i) => Math.min(i + 1, all.length - 1)) }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); setAt((i) => Math.max(i - 1, 0)) }
+          else if (e.key === 'Enter' && open && all[at]) { e.preventDefault(); pick(all[at]) }
+          else if (e.key === 'Escape') setOpen(false)
+        }}
+      />
+      {open && all.length > 0 && (
+        <ul className="mon-picker-list" role="listbox" ref={listRef}>
+          {all.map((e, i) => (
+            <li key={e === OTHER ? 'other' : e.id} role="option" aria-selected={i === at}
+              className={e === OTHER ? 'other' : ''} onMouseEnter={() => setAt(i)}
+              onMouseDown={(ev) => { ev.preventDefault(); pick(e) }}>
+              {e === OTHER ? OTHER : <><img src={spriteUrl(e.id)} alt="" width="28" height="28" loading="lazy" />{e.label}</>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
 const RUN_STATUS = { active: 'In progress', won: 'Beaten', lost: 'Lost' }
 
 /** "Skip route" on the open area; says so when what you caught shares a primary type with the team. */
@@ -331,7 +376,6 @@ function Slot({ player, names, row, gen, options, possible = [], rosterById, fam
   // With a log: the dropdown lists only this area's Pokémon, then "Other…" for the full list.
   const [other, setOther] = useState(false)
   const short = possible.length > 0 && !other
-  const listId = short ? `possible-${player}-${row.area.replace(/[^a-z0-9]+/gi, '-')}` : `mons-gen-${gen}`
 
   // Take over changes from the other player, unless this field is being typed in.
   useEffect(() => {
@@ -371,29 +415,24 @@ function Slot({ player, names, row, gen, options, possible = [], rosterById, fam
       <div className="slot-mon">
         {id ? <img src={spriteUrl(id)} alt="" width="48" height="48" loading="lazy" /> : <span className="slot-empty" />}
         <div className="slot-fields">
-          <input
-            list={listId}
-            aria-label={`${name}’s Pokémon on ${row.area}`}
+          <MonPicker
+            label={`${name}’s Pokémon on ${row.area}`}
             placeholder={`${name}’s Pokémon`}
             value={label}
+            choices={short ? possible.map((m) => rosterById[m.id]).filter(Boolean) : options}
+            withOther={short}
             onFocus={() => (editing.current = true)}
-            onChange={(e) => {
-              if (short && e.target.value === OTHER) { setOther(true); setLabel(''); return }
-              setLabel(e.target.value)
-              // Picking a suggestion fills in the full name: save straight away.
-              if (byLabel[e.target.value.toLowerCase()]) commitPokemon(e.target.value)
+            onType={setLabel}
+            onPick={(e) => {
+              if (e === OTHER) { setOther(true); setLabel(''); return }
+              setLabel(e.label)
+              commitPokemon(e.label)
             }}
-            onBlur={(e) => {
+            onBlur={(text) => {
               editing.current = false
-              commitPokemon(e.target.value)
+              commitPokemon(text)
             }}
           />
-          {short && (
-            <datalist id={listId}>
-              {possible.map((m) => <option key={m.id} value={rosterById[m.id]?.label ?? m.name} />)}
-              <option value={OTHER} />
-            </datalist>
-          )}
           <input
             aria-label={`${name}’s nickname on ${row.area}`}
             placeholder="Nickname"

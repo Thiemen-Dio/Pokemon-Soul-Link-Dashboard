@@ -238,7 +238,7 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
   const setBeaten = (n) => { setBeatenState(n); try { localStorage.setItem(`test-beaten-${run.id}`, String(n)) } catch { /* not remembered */ } }
   // Uploaded randomizer log, per run in this browser. shortcut: not shared with the other player, move to the run row when it matters.
   const logKey = `test-randolog-${run.id}`
-  const [log, setLogState] = useState(() => { try { return JSON.parse(localStorage.getItem(logKey)) } catch { return null } })
+  const [log, setLogState] = useState(() => { try { return JSON.parse(localStorage.getItem(logKey) ?? localStorage.getItem(`dash-randolog-${run.id}`)) } catch { return null } })
   const setLog = (l) => {
     setLogState(l)
     try { if (l) localStorage.setItem(logKey, JSON.stringify(l)); else localStorage.removeItem(logKey) } catch { /* kept until reload */ }

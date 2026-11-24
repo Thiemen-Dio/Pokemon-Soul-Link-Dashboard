@@ -133,6 +133,19 @@ h3 { letter-spacing: -0.015em; }
   transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
 }
 :is(.toolbar input, .slot input, .mon-card input):hover, select:hover { border-color: var(--border-strong); }
+
+/* Pokémon field dropdown (run log): looks like the field, scrolls */
+.mon-picker { position: relative; }
+.mon-picker > input { width: 100%; }
+.mon-picker-list {
+  position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0;
+  max-height: 18rem; overflow-y: auto; margin: 0; padding: 0.25rem; list-style: none;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12); font-size: 0.9rem;
+}
+.mon-picker-list li { display: flex; align-items: center; gap: 0.4rem; min-height: 2rem; padding: 0.1rem 0.5rem; border-radius: calc(var(--radius) - 2px); cursor: pointer; }
+.mon-picker-list li[aria-selected='true'] { background: var(--field); }
+.mon-picker-list li.other { margin-top: 0.25rem; border-top: 1px solid var(--border); border-radius: 0; color: var(--muted); font-style: italic; }
 :is(input, select):focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); background-color: var(--surface); }
 /* Room for the arrow (the field rule above would otherwise shrink the right padding). */
 :is(.toolbar select, .status-select, .run-status select, .section-head select) { padding-right: 2rem; }
