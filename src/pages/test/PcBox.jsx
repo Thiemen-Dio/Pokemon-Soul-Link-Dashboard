@@ -1,6 +1,6 @@
 // Test: "my box", styled like the in-game PC. Only one player's Pokémon, as small box icons in 6×5 boxes.
 // Pointing at one shows it and its linked partner in the side panel; clicking it opens both full cards.
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { spriteUrl } from '../../api/pokeapi.js'
 import { rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
 import { PLAYERS } from '../../soullink/rules.js'
@@ -38,27 +38,16 @@ function makeViews(rows, me) {
   }
 }
 
-const Computer = () => (
-  <svg viewBox="0 0 24 24" width="38" height="38" aria-hidden="true">
-    <rect x="2.5" y="3.5" width="19" height="13" rx="2" fill="#4dabf7" stroke="#1c2335" strokeWidth="1.8" />
-    <rect x="5" y="6" width="14" height="8" rx="0.8" fill="#d0ebff" />
-    <path d="M9 20.5h6M12 16.5v4" stroke="#1c2335" strokeWidth="1.8" strokeLinecap="round" />
-  </svg>
-)
-const Pokeball = () => (
-  <svg viewBox="0 0 24 24" width="38" height="38" aria-hidden="true">
-    <circle cx="12" cy="12" r="10.5" fill="#fff" stroke="#1c2335" strokeWidth="1.8" />
-    <path d="M1.5 12a10.5 10.5 0 0 1 21 0z" fill="#e03131" stroke="#1c2335" strokeWidth="1.8" />
-    <circle cx="12" cy="12" r="3.2" fill="#fff" stroke="#1c2335" strokeWidth="1.8" />
-  </svg>
-)
-const Grave = () => (
-  <svg viewBox="0 0 24 24" width="38" height="38" aria-hidden="true">
-    <path d="M6 21V9a6 6 0 0 1 12 0v12z" fill="#ced4da" stroke="#1c2335" strokeWidth="1.8" strokeLinejoin="round" />
-    <path d="M12 9v6M9.5 11.5h5" stroke="#1c2335" strokeWidth="1.8" strokeLinecap="round" />
-    <path d="M3 21h18" stroke="#1c2335" strokeWidth="1.8" strokeLinecap="round" />
-  </svg>
-)
+// Pixel bag icons (PokéSprite, outlined) and Gen 3-5 PC wallpapers, see public/test/CREDITS.txt.
+const ICON = (name) => `/test/icons/${name}.png`
+const GRAVE_ICONS = { keystone: 'Odd Keystone', 'reaper-cloth': 'Reaper Cloth', 'rare-bone': 'Rare Bone' }
+const WALLPAPERS = {
+  box: ['forest_e', 'savanna_e', 'river_e', 'sky_e', 'beach_e', 'seafloor_e', 'desert_e', 'snow_e', 'forest_dppt', 'river_dppt', 'sky_dppt', 'dp_backyard'],
+  party: ['pokecenter_rs', 'pokecenter_e', 'pokecenter_frlg', 'pokecenter_dppt', 'pokecenter_bw', 'monochrome_bw1', 'polka_dot_e'],
+  grave: ['cave_e', 'cave_frlg', 'cave_dppt', 'dp_space', 'pt_legends_distortion', 'zoroark_bw1'],
+}
+const WALL_DIR = { box: 'box', party: 'team', grave: 'grave' }
+const randomWall = (view) => { const list = WALLPAPERS[view]; return `/test/wallpapers/${WALL_DIR[view]}/${list[Math.floor(Math.random() * list.length)]}.png` }
 
 export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
   const [me, setMeState] = useState(() => { try { return localStorage.getItem('test-box-player') ?? 'p1' } catch { return 'p1' } })
@@ -66,6 +55,10 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
   const partner = me === 'p1' ? 'p2' : 'p1'
   const [view, setView] = useState('box') // box | party | grave
   const [boxAt, setBoxAt] = useState(0)
+  // A new random wallpaper (from that view's mood) every time a box is opened or switched.
+  const wall = useMemo(() => randomWall(view), [view, boxAt, me]) // eslint-disable-line react-hooks/exhaustive-deps
+  const [graveIcon, setGraveIconState] = useState(() => { try { return localStorage.getItem('test-grave-icon') ?? 'keystone' } catch { return 'keystone' } })
+  const setGraveIcon = (k) => { setGraveIconState(k); try { localStorage.setItem('test-grave-icon', k) } catch { /* not remembered */ } }
   const [hover, setHover] = useState(null) // area
   const [picked, setPicked] = useState(null) // area: clicked, its two cards are open below
 
@@ -113,7 +106,7 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
           )}
         </aside>
 
-        <div className={box.grave ? 'pc-box-game grave' : 'pc-box-game'}>
+        <div className={`pc-box-game v-${view}`} style={{ backgroundImage: `url(${wall})` }}>
           <div className="pc-top">
             <div className="pc-head">
               <button type="button" onClick={() => go(-1)} disabled={boxes.length < 2} aria-label="Previous box">◀</button>
@@ -122,13 +115,13 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
               <button type="button" onClick={() => go(1)} disabled={boxes.length < 2} aria-label="Next box">▶</button>
             </div>
             <button type="button" className="pc-view" aria-pressed={view === 'box'} onClick={() => show('box')} title="PC boxes">
-              <Computer />
+              <img src={ICON('pc')} alt="" width="48" height="48" />
             </button>
             <button type="button" className="pc-view" aria-pressed={view === 'party'} onClick={() => show('party')} title="Current team">
-              <Pokeball />
+              <img src={ICON('team')} alt="" width="48" height="48" />
             </button>
             <button type="button" className="pc-view" aria-pressed={view === 'grave'} onClick={() => show('grave')} title="Graveyard: dead and failed">
-              <Grave />
+              <img src={ICON(`grave-${graveIcon}`)} alt="" width="48" height="48" />
             </button>
           </div>
           <ul className={box.slots === 6 ? 'pc-grid party' : 'pc-grid'}>{/* every box has the same size */}
@@ -148,6 +141,15 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
             })}
           </ul>
         </div>
+      </div>
+
+      <div className="tabs grave-try" role="group" aria-label="Graveyard icon to try">
+        <span className="status small-print">Graveyard icon (try-out):</span>
+        {Object.entries(GRAVE_ICONS).map(([k, label]) => (
+          <button key={k} type="button" aria-pressed={graveIcon === k} onClick={() => setGraveIcon(k)}>
+            <img src={ICON(`grave-${k}`)} alt="" width="32" height="32" /> {label}
+          </button>
+        ))}
       </div>
 
       {sel && (

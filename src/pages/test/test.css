@@ -519,28 +519,28 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
   .pc-partner > div { display: grid; gap: 0.2rem; }
   .pc-link .chip-button { margin-top: 0.3rem; }
 
+  /* Real Gen 3-5 wallpaper (random per box), pixels kept sharp. */
   .pc-box-game {
     padding: 0.7rem 0.8rem 0.9rem; border: 4px solid #3f8a6b; border-radius: 18px;
-    background:
-      radial-gradient(circle at 25% 25%, rgb(255 255 255 / 0.22) 0 6px, transparent 7px) 0 0 / 48px 48px,
-      radial-gradient(circle at 75% 75%, rgb(255 255 255 / 0.14) 0 4px, transparent 5px) 0 0 / 48px 48px,
-      repeating-linear-gradient(135deg, #8fd3b0 0 18px, #82c9a5 18px 36px);
+    background: #8fd3b0 center / cover no-repeat; image-rendering: pixelated;
     box-shadow: inset 0 -6px 0 rgb(0 0 0 / 0.08);
   }
-  .pc-box-game.grave { border-color: #5f5874; background:
-      radial-gradient(circle at 25% 25%, rgb(255 255 255 / 0.12) 0 6px, transparent 7px) 0 0 / 48px 48px,
-      repeating-linear-gradient(135deg, #a9a3bd 0 18px, #9d97b3 18px 36px); }
-  .pc-top { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 0 auto 0.7rem; }
-  .pc-view { display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; filter: drop-shadow(0 2px 0 rgb(0 0 0 / 0.2)); transition: transform 0.12s, filter 0.12s; }
+  .pc-box-game.v-party { border-color: #c92a2a; }
+  .pc-box-game.v-grave { border-color: #3b3550; box-shadow: inset 0 0 0 999px rgb(10 8 25 / 0.35); }
+  .v-party .pc-head button { background: #c92a2a; }
+  .v-grave .pc-head button { background: #3b3550; }
+  .v-grave .pc-slot .box-icon { filter: grayscale(1) brightness(1.1); opacity: 0.85; }
+  .pc-top { display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin: 0 auto 0.7rem; }
+  .pc-view { display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; filter: drop-shadow(0 2px 0 rgb(0 0 0 / 0.25)); transition: transform 0.12s, filter 0.12s; }
+  .pc-view img { width: 48px; height: 48px; image-rendering: pixelated; }
   .pc-view:hover { transform: translateY(-2px); }
-  .pc-view[aria-pressed='true'] { transform: scale(1.15); filter: drop-shadow(0 0 4px #ffd43b) drop-shadow(0 0 2px #ffd43b) drop-shadow(0 2px 0 rgb(0 0 0 / 0.2)); }
+  .pc-view[aria-pressed='true'] { transform: scale(1.15); filter: drop-shadow(0 0 4px #ffd43b) drop-shadow(0 0 2px #ffd43b) drop-shadow(0 2px 0 rgb(0 0 0 / 0.25)); }
   .pc-view[aria-pressed='true']:hover { transform: scale(1.15) translateY(-2px); }
   .pc-view:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 6px; }
   .pc-head { display: flex; align-items: center; justify-content: center; gap: 0.6rem; width: min(100%, 20rem); margin: 0; padding: 0.3rem 0.5rem; border-radius: 999px; background: rgb(255 255 255 / 0.88); box-shadow: 0 2px 0 rgb(0 0 0 / 0.12); }
   .pc-head strong { flex: 1; text-align: center; text-transform: uppercase; letter-spacing: 0.12em; color: #1c2335; }
   .pc-count { color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
   .pc-head button { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border: 0; border-radius: 50%; background: #3f8a6b; color: #fff; font-size: 0.7rem; cursor: pointer; }
-  .grave .pc-head button { background: #5f5874; }
   .pc-head button:hover { filter: brightness(1.15); }
   .pc-head button:disabled { opacity: 0.35; cursor: default; filter: none; }
 
@@ -559,4 +559,7 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
   .pc-slot.s-dead .box-icon, .pc-slot.s-failed .box-icon { filter: grayscale(1); opacity: 0.7; }
   .pc-slot.s-pending .box-icon { opacity: 0.6; }
 }
+.test-box .grave-try { align-items: center; flex-wrap: wrap; margin-top: 0.8rem; }
+.test-box .grave-try button { display: inline-flex; align-items: center; gap: 0.3rem; }
+.test-box .grave-try img { image-rendering: pixelated; }
 @keyframes pc-bob { to { translate: -50% 3px; } }
