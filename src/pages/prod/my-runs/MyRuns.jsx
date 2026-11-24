@@ -101,7 +101,7 @@ export function CurrentRuns() {
       {live.length > 1 && (
         <div className="slide-nav">
           <button type="button" onClick={() => setAt(i - 1)} disabled={i === 0} aria-label="More recently updated run">‹</button>
-          <span className="status small-print">{i + 1} of {live.length} · updated {timeAgo(live[i].last)}</span>
+          <span className="status small-print" title={`Updated ${timeAgo(live[i].last)}`}>{i + 1}/{live.length}</span>
           <button type="button" onClick={() => setAt(i + 1)} disabled={i === live.length - 1} aria-label="Earlier updated run">›</button>
         </div>
       )}
