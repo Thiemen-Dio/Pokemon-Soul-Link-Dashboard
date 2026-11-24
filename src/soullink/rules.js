@@ -11,6 +11,7 @@ export const STATUSES = [
   { id: 'box', label: 'In the PC' },
   { id: 'dead', label: 'Dead' },
   { id: 'failed', label: 'Failed' },
+  { id: 'skipped', label: 'Skipped' },
 ]
 
 /** The primary type a Pokémon had in a generation (from the type roster), or null. */

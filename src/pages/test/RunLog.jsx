@@ -20,6 +20,19 @@ import {
 
 const RUN_STATUS = { active: 'In progress', won: 'Beaten', lost: 'Lost' }
 
+/** "Skip route" on the open area; says so when what you caught shares a primary type with the team. */
+function SkipRoute({ row, encounters, rosterById, gen, onSkip }) {
+  if (row.status !== 'pending') return null
+  const caught = PLAYERS.some((p) => row[`${p}_pokemon_id`])
+  const clash = caught ? teamClash(encounters, { ...row, status: 'team' }, rosterById, gen) : null
+  return (
+    <div className={clash ? 'skip-route clash' : 'skip-route'}>
+      {clash && <span className="slot-warning">Shares {clash.type} with {clash.area} on the team: you may skip this route.</span>}
+      <button type="button" className="chip-button" onClick={onSkip}>Skip route</button>
+    </div>
+  )
+}
+
 // "Alive" = on the team or in the PC.
 const ENCOUNTER_FILTERS = {
   all: { label: 'All' },
@@ -209,6 +222,7 @@ export function Run({ run, encounters, setEncounters, roster, families, onError,
           <div key={row.area} className="encounter-open">
             {openArea && <button type="button" className="chip-button fold-back" onClick={() => setOpenArea(null)}>Back to next area</button>}
             {areaRow(row)}
+            <SkipRoute row={row} encounters={encounters} rosterById={rosterById} gen={gen} onSkip={() => { save(row, { status: 'skipped' }); setOpenArea(null) }} />
             {renderNext?.(row, (changes) => save(row, changes))}
           </div>
         ) : areaRow(row))}

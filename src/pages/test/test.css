@@ -489,3 +489,5 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
 .mon-chip.is-dupe img { filter: grayscale(1); }
 .chip-mini { width: 1.5rem; height: 1.5rem; padding: 0; border: 0; border-radius: 50%; background: var(--track); font: inherit; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
 .chip-mini:hover { background: var(--accent); color: #fff; }
+.skip-route { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.5rem; }
+.skip-route.clash { justify-content: space-between; padding: 0.4rem 0.6rem; border-radius: 10px; background: color-mix(in srgb, var(--accent) 10%, transparent); }

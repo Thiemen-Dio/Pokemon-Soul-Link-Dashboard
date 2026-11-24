@@ -124,7 +124,7 @@ export default function Test() {
   )
 }
 
-const NEWS_VERB = { team: 'joined the team', box: 'went to the PC', dead: 'fell', failed: 'failed', pending: 'got a first catch' }
+const NEWS_VERB = { team: 'joined the team', box: 'went to the PC', dead: 'fell', failed: 'failed', skipped: 'was skipped', pending: 'got a first catch' }
 
 /** When this browser last opened a page (per viewer, so no database needed). */
 function useLastVisit(id) {
@@ -248,7 +248,7 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
   const rows = areaRows(run.base_game, encounters, areasFromLog)
   const team = rows.filter((r) => r.status === 'team')
   // Run log layout to try out: now (as on prod), a (unlock one by one), b (only the next route), c (compact choices).
-  const [layout, setLayoutState] = useState(() => { try { return localStorage.getItem('test-log-layout') ?? 'a' } catch { return 'a' } })
+  const [layout, setLayoutState] = useState(() => { try { return localStorage.getItem('test-log-layout') ?? 'b' } catch { return 'b' } })
   const setLayout = (l) => { setLayoutState(l); try { localStorage.setItem('test-log-layout', l) } catch { /* not remembered */ } }
   const props = { run, gen, names, rows, team, encounters, roster, rosterById, families, chart, log, layout }
 
@@ -540,7 +540,7 @@ function RouteFinder({ run, gen, rows, encounters, roster, rosterById, families,
 // ---- Next encounter (inside the run log) ----
 
 /** Under the open area: tap what you caught. Known routes list their Pokémon; randomized ones without a log get a search. */
-const LOG_LAYOUTS = { a: 'A · Unlock one by one', b: 'B · Only the next route', c: 'C · Compact choices', now: 'As on the live site' }
+const LOG_LAYOUTS = { a: 'A · Unlock one by one', b: 'B · Next route, compact (chosen)', c: 'C · Compact choices', now: 'As on the live site' }
 
 function NextEncounters({ run, gen, row, save, roster, rosterById, families, encounters, names, log, layout }) {
   const state = useAreaMons(run, row.area, roster, log)
@@ -554,7 +554,7 @@ function NextEncounters({ run, gen, row, save, roster, rosterById, families, enc
   const search = !known || searching
   const text = q.trim().toLowerCase()
   // C: filter the area's own list by name and by day/night table (Gen 7 logs split every table in two).
-  const chips = layout === 'c' && !search
+  const chips = (layout === 'b' || layout === 'c') && !search
   const hasTime = state.mons.some((m) => /\((Day|Night)\)/.test(m.where ?? ''))
   const atTime = (m) => time === 'all' || (m.where ?? '').includes(`(${time === 'day' ? 'Day' : 'Night'})`)
   const list = search
@@ -584,14 +584,14 @@ function NextEncounters({ run, gen, row, save, roster, rosterById, families, enc
       {!search && state.status === 'loading' && <p className="status">Loading encounters…</p>}
       {!search && state.status === 'error' && <p className="status error">{state.message}</p>}
       {!search && state.status === 'ready' && list.length === 0 && <p className="status">No list for this area. Use “Search all”.</p>}
-      <ul className={layout === 'c' ? 'mon-chips' : 'route-mons next-pick'}>
+      <ul className={layout === 'b' || layout === 'c' ? 'mon-chips' : 'route-mons next-pick'}>
         {list.map((m) => {
           const entry = rosterById[m.id]
           const dupe = used.get(familyOf(entry?.dex ?? m.dex ?? m.id))
           const name = entry?.label ?? (m.name ? displayName(m.name) : `#${m.id}`)
           const pickable = search || state.source !== 'log'
           // C: a small chip; types, table and dupe details in the hover text.
-          if (layout === 'c') return (
+          if (layout === 'b' || layout === 'c') return (
             <li key={m.id} className={dupe ? 'mon-chip is-dupe' : 'mon-chip'}
               title={[entry && rosterTypesInGeneration(entry, gen).map(displayName).join(' / '), !search && encounterInfo(m), dupe && `Dupe: ${names[dupe.player]} has this line (${dupe.area})`].filter(Boolean).join('\n')}>
               <Mon id={m.id} size={36} />
@@ -978,7 +978,7 @@ function ShareSummary({ run, rows, team, rosterById, names }) {
 
 // ---- Where did we use it? ----
 
-const FATE = { team: 'on the team', box: 'in the PC', dead: 'died', failed: 'failed', pending: 'waiting for partner' }
+const FATE = { team: 'on the team', box: 'in the PC', dead: 'died', failed: 'failed', skipped: 'skipped', pending: 'waiting for partner' }
 
 function History({ runs, byRun, rosterById, families }) {
   const [text, setText] = useState('')

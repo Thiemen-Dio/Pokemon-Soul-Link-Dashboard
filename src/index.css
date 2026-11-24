@@ -561,6 +561,7 @@ h5 { margin: 0.9rem 0 0.3rem; font-size: 0.9rem; }
 .encounter-row.status-box { --status: #3b6fd8; }
 .encounter-row.status-dead { --status: var(--accent); opacity: 0.7; }
 .encounter-row.status-failed { --status: var(--border-strong); opacity: 0.6; }
+.encounter-row.status-skipped { --status: var(--border-strong); opacity: 0.6; font-style: italic; }
 .encounter-row.status-dead img { filter: grayscale(1); }
 .encounter-row.clash { background: color-mix(in srgb, var(--accent) 6%, transparent); }
 /* Quiet row action (Clear / Remove) */

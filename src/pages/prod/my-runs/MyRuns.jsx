@@ -166,7 +166,7 @@ export function RunsOverview() {
   )
 }
 
-const NEWS_VERB = { team: 'joined the team', box: 'went to the PC', dead: 'fell', failed: 'failed', pending: 'got a first catch' }
+const NEWS_VERB = { team: 'joined the team', box: 'went to the PC', dead: 'fell', failed: 'failed', skipped: 'was skipped', pending: 'got a first catch' }
 
 /** When this browser last opened a page (per viewer, so no database needed). */
 function useLastVisit(id) {
@@ -289,7 +289,7 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
   const areasFromLog = useMemo(() => (log ? logAreas(log.sets) : []), [log])
   const rows = areaRows(run.base_game, encounters, areasFromLog)
   const team = rows.filter((r) => r.status === 'team')
-  const props = { run, gen, names, rows, team, encounters, roster, rosterById, families, chart, log }
+  const props = { run, gen, names, rows, team, encounters, roster, rosterById, families, chart, log, layout: 'b' }
 
   // Save fields on one area (favourite, a Pokémon's build, an evolution) and show it straight away.
   async function saveRow(r, changes) {
@@ -318,7 +318,7 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
           <div className="soullink">
             <Run
               run={run} encounters={encounters} setEncounters={setEncounters} roster={roster} families={families} onError={onError} onRunChange={onRunChange}
-              compact logAreas={areasFromLog}
+              compact logAreas={areasFromLog} layout="b"
               renderNext={(row, save) => <NextEncounters {...props} row={row} save={save} />}
             />
           </div>
@@ -574,18 +574,24 @@ function RouteFinder({ run, gen, rows, encounters, roster, rosterById, families,
 // ---- Next encounter (inside the run log) ----
 
 /** Under the open area: tap what you caught. Known routes list their Pokémon; randomized ones without a log get a search. */
-function NextEncounters({ run, gen, row, save, roster, rosterById, families, encounters, names, log }) {
+function NextEncounters({ run, gen, row, save, roster, rosterById, families, encounters, names, log, layout }) {
   const state = useAreaMons(run, row.area, roster, log)
   const known = !run.randomized || state.source === 'log'
   const [searching, setSearching] = useState(false)
   const [q, setQ] = useState('')
+  const [time, setTime] = useState('all')
   const free = PLAYERS.filter((p) => !row[`${p}_pokemon_id`])
   if (free.length === 0) return null
 
   const search = !known || searching
   const text = q.trim().toLowerCase()
+  // C: filter the area's own list by name and by day/night table (Gen 7 logs split every table in two).
+  const chips = (layout === 'b' || layout === 'c') && !search
+  const hasTime = state.mons.some((m) => /\((Day|Night)\)/.test(m.where ?? ''))
+  const atTime = (m) => time === 'all' || (m.where ?? '').includes(`(${time === 'day' ? 'Day' : 'Night'})`)
   const list = search
     ? roster.filter((e) => e.generation <= gen && (!text || e.label.toLowerCase().includes(text))).slice(0, 48)
+    : chips ? state.mons.filter((m) => atTime(m) && (!text || (rosterById[m.id]?.label ?? m.name ?? '').toLowerCase().includes(text)))
     : state.mons
   const familyOf = (dex) => families[dex] ?? -dex
   const used = new Map(catches(encounters).map((c) => [familyOf(rosterById[c.id]?.dex ?? c.id), c]))
@@ -594,7 +600,15 @@ function NextEncounters({ run, gen, row, save, roster, rosterById, families, enc
     <div className="next-encounters">
       <div className="toolbar">
         <strong>{search ? `Which Pokémon did you find on ${row.area}?` : `Can appear on ${row.area}`}</strong>
-        {search && <input type="search" placeholder="Search a Pokémon" aria-label="Search a Pokémon" value={q} onChange={(e) => setQ(e.target.value)} />}
+        {(search || chips) && <input type="search" placeholder={chips ? 'Type what you met' : 'Search a Pokémon'} aria-label="Search a Pokémon" value={q} onChange={(e) => setQ(e.target.value)} />}
+        {chips && hasTime && (
+          <div className="tabs" role="group" aria-label="Time of day">
+            {[['all', 'All'], ['day', '☀ Day'], ['night', '☾ Night']].map(([id, label]) => (
+              <button key={id} type="button" aria-pressed={time === id} onClick={() => setTime(id)}>{label}</button>
+            ))}
+          </div>
+        )}
+        {chips && <span className="status small-print">{list.length} of {state.mons.length}</span>}
         {known && <button type="button" className="chip-button" onClick={() => setSearching((s) => !s)}>{searching ? 'Back to the route list' : 'Not listed? Search all'}</button>}
       </div>
       {!known && <p className="status small-print">Randomized run: search what you found. Upload the randomizer log (Scouting) to see each route’s real Pokémon here.</p>}
@@ -602,10 +616,23 @@ function NextEncounters({ run, gen, row, save, roster, rosterById, families, enc
       {!search && state.status === 'loading' && <p className="status">Loading encounters…</p>}
       {!search && state.status === 'error' && <p className="status error">{state.message}</p>}
       {!search && state.status === 'ready' && list.length === 0 && <p className="status">No list for this area. Use “Search all”.</p>}
-      <ul className="route-mons next-pick">
+      <ul className={layout === 'b' || layout === 'c' ? 'mon-chips' : 'route-mons next-pick'}>
         {list.map((m) => {
           const entry = rosterById[m.id]
           const dupe = used.get(familyOf(entry?.dex ?? m.dex ?? m.id))
+          const name = entry?.label ?? (m.name ? displayName(m.name) : `#${m.id}`)
+          const pickable = search || state.source !== 'log'
+          // C: a small chip; types, table and dupe details in the hover text.
+          if (layout === 'b' || layout === 'c') return (
+            <li key={m.id} className={dupe ? 'mon-chip is-dupe' : 'mon-chip'}
+              title={[entry && rosterTypesInGeneration(entry, gen).map(displayName).join(' / '), !search && encounterInfo(m), dupe && `Dupe: ${names[dupe.player]} has this line (${dupe.area})`].filter(Boolean).join('\n')}>
+              <Mon id={m.id} size={36} />
+              <span><strong>{name}</strong>{!search && m.min ? <span className="status small-print"> Lv {m.min === m.max ? m.min : `${m.min}–${m.max}`}</span> : null}</span>
+              {pickable && free.map((p) => (
+                <button key={p} type="button" className="chip-mini" onClick={() => save({ [`${p}_pokemon_id`]: m.id })} title={`${names[p]} caught this on ${row.area}`}>{names[p][0]}</button>
+              ))}
+            </li>
+          )
           return (
             <li key={m.id} className={dupe ? 'route-mon is-dupe' : 'route-mon'}>
               <Mon id={m.id} size={56} />
@@ -615,8 +642,7 @@ function NextEncounters({ run, gen, row, save, roster, rosterById, families, enc
                 <span className="types">{entry && rosterTypesInGeneration(entry, gen).map((t) => <TypeBadge key={t} type={t} small />)}</span>
                 {dupe && <span className="slot-warning">Dupe: {names[dupe.player]} has this line ({dupe.area})</span>}
               </div>
-              {/* A log is one player's game, so its list is for looking only. Later: both logs online, one list per player. */}
-              {(search || state.source !== 'log') && <div className="pick-buttons">
+              {pickable && <div className="pick-buttons">
                 {free.map((p) => (
                   <button key={p} type="button" className="chip-button" onClick={() => save({ [`${p}_pokemon_id`]: m.id })} title={`${names[p]} caught this on ${row.area}`}>
                     {names[p]}
@@ -984,7 +1010,7 @@ function ShareSummary({ run, rows, team, rosterById, names }) {
 
 // ---- Where did we use it? ----
 
-const FATE = { team: 'on the team', box: 'in the PC', dead: 'died', failed: 'failed', pending: 'waiting for partner' }
+const FATE = { team: 'on the team', box: 'in the PC', dead: 'died', failed: 'failed', skipped: 'skipped', pending: 'waiting for partner' }
 
 function History({ runs, byRun, rosterById, families }) {
   const [text, setText] = useState('')

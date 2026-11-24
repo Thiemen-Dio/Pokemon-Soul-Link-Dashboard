@@ -10,7 +10,7 @@ import { getHoldItems, getMonStats, getNextEvolutions } from './data.js'
 import { HELD_ITEMS, NATURES, STAT_KEYS, itemLabel, itemSprite, withBuild } from './items.js'
 
 const STAT_LABELS = { hp: 'HP', attack: 'Atk', defense: 'Def', 'special-attack': 'SpA', 'special-defense': 'SpD', speed: 'Spe' }
-const STATUS_TEXT = { team: 'on the team', box: 'in the PC', dead: 'dead', failed: 'failed', pending: 'waiting for the partner' }
+const STATUS_TEXT = { team: 'on the team', box: 'in the PC', dead: 'dead', failed: 'failed', skipped: 'skipped', pending: 'waiting for the partner' }
 const animatedUrl = (id) => spriteUrl(id).replace(/\/(\d+)\.png$/, '/other/showdown/$1.gif')
 
 /** Moves this Pokémon can have in the run's game: learnable ones first, then every move of the generation. */
