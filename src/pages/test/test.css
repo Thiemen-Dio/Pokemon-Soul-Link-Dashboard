@@ -537,14 +537,17 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
   .grave .pc-head button { background: #5f5874; }
   .pc-head button:hover { filter: brightness(1.15); }
 
-  .pc-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.2rem; margin: 0; padding: 0; list-style: none; }
-  .pc-slot { aspect-ratio: 4 / 3; position: relative; }
+  /* Fixed size for every box (Party, Box n, Graveyard): 6×5 slots, Party 3×2 bigger ones. */
+  .pc-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-rows: repeat(5, 1fr); gap: 0.25rem; height: 40rem; margin: 0; padding: 0; list-style: none; }
+  .pc-grid.party { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, 1fr); gap: 0.6rem; }
+  .pc-grid.party .box-icon { width: 120px; height: 90px; }
+  .pc-slot { position: relative; min-height: 0; }
   .pc-slot button { display: grid; place-items: center; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 12px; background: none; cursor: pointer; }
   .pc-slot button:hover, .pc-slot button:focus-visible { outline: none; background: rgb(255 255 255 / 0.35); }
   .pc-slot.picked button { background: rgb(255 255 255 / 0.6); box-shadow: inset 0 0 0 3px #ffd43b; }
   .pc-slot.picked::before { content: '▼'; position: absolute; top: -0.65rem; left: 50%; translate: -50% 0; color: #ffd43b; font-size: 0.8rem; text-shadow: 0 1px 0 #1c2335; z-index: 1; animation: pc-bob 0.8s ease-in-out infinite alternate; }
-  .box-icon { width: 64px; height: 48px; image-rendering: pixelated; transition: transform 0.12s; }
-  .box-icon.fallback { width: 52px; height: 52px; object-fit: contain; }
+  .box-icon { width: 80px; height: 60px; image-rendering: pixelated; transition: transform 0.12s; }
+  .box-icon.fallback { width: 64px; height: 64px; object-fit: contain; }
   .pc-slot button:hover .box-icon { transform: translateY(-3px); }
   .pc-slot.s-dead .box-icon, .pc-slot.s-failed .box-icon { filter: grayscale(1); opacity: 0.7; }
   .pc-slot.s-pending .box-icon { opacity: 0.6; }

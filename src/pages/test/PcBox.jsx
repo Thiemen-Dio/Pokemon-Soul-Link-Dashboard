@@ -1,5 +1,5 @@
 // Test: "my box", styled like the in-game PC. Only one player's Pokémon, as small box icons in 6×5 boxes.
-// Pointing at one shows it in the side panel; clicking it reveals the linked partner (hidden until then).
+// Pointing at one shows it and its linked partner in the side panel; clicking it opens both full cards.
 import { useState } from 'react'
 import { spriteUrl } from '../../api/pokeapi.js'
 import { rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
@@ -29,7 +29,7 @@ function makeBoxes(rows, me) {
   const boxes = [{ name: 'Party', slots: 6, rows: mine.filter((r) => r.status === 'team') }]
   for (let i = 0; i === 0 || i < pc.length; i += BOX_SIZE) boxes.push({ name: `Box ${i / BOX_SIZE + 1}`, slots: BOX_SIZE, rows: pc.slice(i, i + BOX_SIZE) })
   const fallen = mine.filter((r) => r.status === 'dead' || r.status === 'failed')
-  boxes.push({ name: 'Graveyard', slots: Math.max(BOX_SIZE, fallen.length), rows: fallen, grave: true })
+  for (let i = 0; i === 0 || i < fallen.length; i += BOX_SIZE) boxes.push({ name: fallen.length > BOX_SIZE ? `Graveyard ${i / BOX_SIZE + 1}` : 'Graveyard', slots: BOX_SIZE, rows: fallen.slice(i, i + BOX_SIZE), grave: true })
   return boxes
 }
 
@@ -39,8 +39,7 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
   const partner = me === 'p1' ? 'p2' : 'p1'
   const [boxAt, setBoxAt] = useState(0)
   const [hover, setHover] = useState(null) // area
-  const [picked, setPicked] = useState(null) // area: clicked, so the partner shows
-  const [cards, setCards] = useState(false)
+  const [picked, setPicked] = useState(null) // area: clicked, its two cards are open below
 
   const boxes = makeBoxes(rows, me)
   const box = boxes[Math.min(boxAt, boxes.length - 1)]
@@ -59,14 +58,14 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
 
       <div className="pc">
         <aside className="pc-panel" aria-live="polite">
-          {!shown ? <p className="pc-hint">Point at a Pokémon to see it. Click it to see who it’s linked to.</p> : (
+          {!shown ? <p className="pc-hint">Point at a Pokémon to see it and its partner. Click it for both full cards.</p> : (
             <>
               <PanelSprite id={shown[`${me}_pokemon_id`]} />
               <strong className="pc-name">{nameOf(shown, me)}</strong>
               {shown[`${me}_nickname`] && <span className="pc-species">{speciesOf(shown, me)}</span>}
               <span className="types">{typesOf(shown, me).map((t) => <TypeBadge key={t} type={t} small />)}</span>
               <span className="pc-meta">{shown.area} · {STATUS_TEXT[shown.status] ?? shown.status}</span>
-              {shown.area === picked && (
+              {(
                 <div className="pc-link">
                   <span className="pc-link-label">Soul linked with {names[partner]}’s</span>
                   {shown[`${partner}_pokemon_id`] ? (
@@ -78,7 +77,6 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
                       </div>
                     </div>
                   ) : <span className="pc-hint">Nothing caught yet.</span>}
-                  <button type="button" className="chip-button" onClick={() => setCards((c) => !c)}>{cards ? 'Hide cards' : 'Show both cards'}</button>
                 </div>
               )}
             </>
@@ -92,7 +90,7 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
             <span className="pc-count">{box.rows.length}/{box.slots}</span>
             <button type="button" onClick={() => go(1)} aria-label="Next box">▶</button>
           </div>
-          <ul className={box.slots === 6 ? 'pc-grid party' : 'pc-grid'}>
+          <ul className={box.slots === 6 ? 'pc-grid party' : 'pc-grid'}>{/* every box has the same size */}
             {Array.from({ length: box.slots }, (_, i) => {
               const r = box.rows[i]
               if (!r) return <li key={`empty-${i}`} className="pc-slot empty" />
@@ -100,7 +98,7 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
                 <li key={r.area} className={`pc-slot s-${r.status}${picked === r.area ? ' picked' : ''}`}>
                   <button type="button" onMouseEnter={() => setHover(r.area)} onMouseLeave={() => setHover(null)}
                     onFocus={() => setHover(r.area)} onBlur={() => setHover(null)}
-                    onClick={() => { setPicked(picked === r.area ? null : r.area); setCards(false) }}
+                    onClick={() => setPicked(picked === r.area ? null : r.area)}
                     aria-pressed={picked === r.area} title={`${nameOf(r, me)} · ${r.area}`}>
                     <BoxIcon id={r[`${me}_pokemon_id`]} />
                   </button>
@@ -111,7 +109,7 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
         </div>
       </div>
 
-      {sel && cards && (
+      {sel && (
         <div className="pair-cards">
           {[me, partner].map((p) => (
             <MonCard key={p} run={run} chart={chart} row={sel} player={p} names={names} rosterById={rosterById} onSave={onSave} picked={p === me} />
