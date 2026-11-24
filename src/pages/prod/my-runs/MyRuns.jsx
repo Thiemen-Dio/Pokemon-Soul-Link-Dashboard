@@ -99,10 +99,11 @@ export function CurrentRuns() {
     <div className="current-runs">
       <HomeHero run={live[i].run} encounters={live[i].encounters} />
       {live.length > 1 && (
-        <div className="slide-nav">
-          <button type="button" onClick={() => setAt(i - 1)} disabled={i === 0} aria-label="More recently updated run">‹</button>
-          <span className="status small-print" title={`Updated ${timeAgo(live[i].last)}`}>{i + 1}/{live.length}</span>
-          <button type="button" onClick={() => setAt(i + 1)} disabled={i === live.length - 1} aria-label="Earlier updated run">›</button>
+        <div className="slide-nav" aria-label="Runs in progress">
+          {live.map((x, n) => (
+            <button key={x.run.id} type="button" className={n === i ? 'on' : ''} onClick={() => setAt(n)}
+              aria-label={x.run.name} aria-current={n === i} title={`${x.run.name} · updated ${timeAgo(x.last)}`} />
+          ))}
         </div>
       )}
     </div>
