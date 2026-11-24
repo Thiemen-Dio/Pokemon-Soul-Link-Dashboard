@@ -318,7 +318,7 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
           <div className="soullink">
             <Run
               run={run} encounters={encounters} setEncounters={setEncounters} roster={roster} families={families} onError={onError} onRunChange={onRunChange}
-              compact logAreas={areasFromLog} layout="b"
+              compact logAreas={areasFromLog} layout="b" log={log}
               renderNext={(row, save) => <NextEncounters {...props} row={row} save={save} />}
             />
           </div>

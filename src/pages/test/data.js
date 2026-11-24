@@ -153,6 +153,9 @@ const squash = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').r
  */
 export function parseRandomizerLog(text) {
   const lines = text.split(/\r?\n/)
+  // "--Random Starters--": "Set starter 1 to Noctowl" → a "Starter" set (level 5).
+  const starters = lines.map((l) => l.match(/^Set starter \d+ to (.+?)\s*$/)?.[1]).filter(Boolean)
+  const starterSet = starters.length ? [{ name: 'Starter', mons: starters.map((name) => ({ name, min: 5, max: 5 })) }] : []
   const at = lines.findIndex((l) => l.trim() === '--Wild Pokemon--')
   if (at < 0) return []
   const sets = []
@@ -164,12 +167,12 @@ export function parseRandomizerLog(text) {
     const mon = line.match(/^\s*(.+?) Lvs? ?(\d+)(?:-(\d+))?/)
     if (mon && sets.length) sets.at(-1).mons.push({ name: mon[1].trim(), min: Number(mon[2]), max: Number(mon[3] ?? mon[2]) })
   }
-  return sets
+  return [...starterSet, ...sets]
 }
 
 /** The areas in a log, in log order: "Route 2, Table 1 (Day)" and "Route 2, Table 2 (Night)" are one area, "Route 2". */
 export function logAreas(sets) {
-  return [...new Set(sets.map((s) => s.name.replace(/, Table \d+.*$/, '')))]
+  return [...new Set(sets.map((s) => s.name.replace(/, Table \d+.*$/, '')))].filter((a) => a !== 'Starter')
 }
 
 // The randomizer shortens forms: "Vulpix-A" = Alolan Vulpix, "Rotom-W" = Wash Rotom (counted as Rotom).

@@ -17,7 +17,9 @@ import {
   teamClash,
   typeConflicts,
 } from '../../../soullink/rules.js'
+import { logEncounters } from './data.js'
 
+const OTHER = 'Other…'
 const RUN_STATUS = { active: 'In progress', won: 'Beaten', lost: 'Lost' }
 
 /** "Skip route" on the open area; says so when what you caught shares a primary type with the team. */
@@ -45,7 +47,7 @@ const ENCOUNTER_FILTERS = {
  * compact: rows fold to one line, only the next area (or the one clicked) is open,
  * with renderNext(row, save) shown under it. Used by the dashboard run page.
  */
-export function Run({ run, encounters, setEncounters, roster, families, onError, onRunChange, compact, renderNext, logAreas, layout }) {
+export function Run({ run, encounters, setEncounters, roster, families, onError, onRunChange, compact, renderNext, logAreas, layout, log }) {
   const gen = run.generation
   const names = { p1: run.player1_name, p2: run.player2_name }
 
@@ -121,6 +123,7 @@ export function Run({ run, encounters, setEncounters, roster, families, onError,
       names={names}
       gen={gen}
       options={options}
+      possible={log ? logEncounters(row.area, log.sets, options) : []}
       rosterById={rosterById}
       families={families}
       encounters={encounters}
@@ -255,7 +258,7 @@ function MonSummary({ id, nickname, owner, entry, gen }) {
 }
 
 /** One area = one linked pair: both players' catches and their shared status. */
-function AreaRow({ row, names, gen, options, rosterById, families, encounters, clash, onSave, onRemove }) {
+function AreaRow({ row, names, gen, options, possible, rosterById, families, encounters, clash, onSave, onRemove }) {
   const status = STATUSES.find((s) => s.id === row.status)
   const [dying, setDying] = useState(false)
   return (
@@ -285,6 +288,7 @@ function AreaRow({ row, names, gen, options, rosterById, families, encounters, c
           row={row}
           gen={gen}
           options={options}
+          possible={possible}
           rosterById={rosterById}
           families={families}
           encounters={encounters}
@@ -312,7 +316,7 @@ function AreaRow({ row, names, gen, options, rosterById, families, encounters, c
 }
 
 /** One player's catch in an area: a Pokémon (typed, with suggestions) and a nickname. */
-function Slot({ player, names, row, gen, options, rosterById, families, encounters, onSave }) {
+function Slot({ player, names, row, gen, options, possible = [], rosterById, families, encounters, onSave }) {
   const name = names[player]
   const idKey = `${player}_pokemon_id`
   const nickKey = `${player}_nickname`
@@ -324,6 +328,10 @@ function Slot({ player, names, row, gen, options, rosterById, families, encounte
   const [nickname, setNickname] = useState(row[nickKey] ?? '')
   const [problem, setProblem] = useState('')
   const editing = useRef(false)
+  // With a log: the dropdown lists only this area's Pokémon, then "Other…" for the full list.
+  const [other, setOther] = useState(false)
+  const short = possible.length > 0 && !other
+  const listId = short ? `possible-${player}-${row.area.replace(/[^a-z0-9]+/gi, '-')}` : `mons-gen-${gen}`
 
   // Take over changes from the other player, unless this field is being typed in.
   useEffect(() => {
@@ -364,12 +372,13 @@ function Slot({ player, names, row, gen, options, rosterById, families, encounte
         {id ? <img src={spriteUrl(id)} alt="" width="48" height="48" loading="lazy" /> : <span className="slot-empty" />}
         <div className="slot-fields">
           <input
-            list={`mons-gen-${gen}`}
+            list={listId}
             aria-label={`${name}’s Pokémon on ${row.area}`}
             placeholder={`${name}’s Pokémon`}
             value={label}
             onFocus={() => (editing.current = true)}
             onChange={(e) => {
+              if (short && e.target.value === OTHER) { setOther(true); setLabel(''); return }
               setLabel(e.target.value)
               // Picking a suggestion fills in the full name: save straight away.
               if (byLabel[e.target.value.toLowerCase()]) commitPokemon(e.target.value)
@@ -379,6 +388,12 @@ function Slot({ player, names, row, gen, options, rosterById, families, encounte
               commitPokemon(e.target.value)
             }}
           />
+          {short && (
+            <datalist id={listId}>
+              {possible.map((m) => <option key={m.id} value={rosterById[m.id]?.label ?? m.name} />)}
+              <option value={OTHER} />
+            </datalist>
+          )}
           <input
             aria-label={`${name}’s nickname on ${row.area}`}
             placeholder="Nickname"
