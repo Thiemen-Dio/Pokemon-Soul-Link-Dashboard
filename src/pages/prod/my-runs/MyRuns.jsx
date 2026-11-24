@@ -83,6 +83,32 @@ export default function MyRuns() {
   )
 }
 
+/** Home page: every run in progress, last updated first, one at a time with ‹ › to step through. */
+export function CurrentRuns() {
+  const { runs, byRun, error } = useAllRuns()
+  const [at, setAt] = useState(0)
+  if (error) return <p className="status error">{error}</p>
+  if (!runs || !byRun) return <p className="status">Loading runs…</p>
+  const lastUpdate = (r, i) => [r.updated_at ?? r.created_at, ...byRun[i].map((e) => e.updated_at)].filter(Boolean).sort().at(-1) ?? ''
+  const live = runs.map((r, i) => ({ run: r, encounters: byRun[i], last: lastUpdate(r, i) }))
+    .filter((x) => x.run.status === 'active')
+    .sort((a, b) => b.last.localeCompare(a.last))
+  if (live.length === 0) return <p className="status">No run in progress. Start one under <Link to="/my-runs">My runs</Link>.</p>
+  const i = Math.min(at, live.length - 1)
+  return (
+    <div className="current-runs">
+      <HomeHero run={live[i].run} encounters={live[i].encounters} />
+      {live.length > 1 && (
+        <div className="slide-nav">
+          <button type="button" onClick={() => setAt(i - 1)} disabled={i === 0} aria-label="More recently updated run">‹</button>
+          <span className="status small-print">{i + 1} of {live.length} · updated {timeAgo(live[i].last)}</span>
+          <button type="button" onClick={() => setAt(i + 1)} disabled={i === live.length - 1} aria-label="Earlier updated run">›</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ================= Overview of all runs (on the Home page) =================
 
 export function RunsOverview() {
@@ -215,7 +241,7 @@ export function RunPage() {
   if (!run) return <p className="status">No run called “{runName}”. <Link to="/my-runs">All runs</Link></p>
   return (
     <section className="dash-page">
-      <Link to="/my-runs" className="back-link">← My runs</Link>
+      <Link to="/my-runs" className="new-run-button back-run"><span className="new-run-plus" aria-hidden="true">←</span><strong>My runs</strong></Link>
       <nav className="dash-jump" aria-label="Sections">
         {SECTIONS.map(([group, items]) => (
           <div key={group} className="jump-group">
