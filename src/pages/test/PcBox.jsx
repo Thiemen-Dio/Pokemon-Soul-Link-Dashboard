@@ -40,13 +40,13 @@ function makeViews(rows, me) {
 
 // Pixel icons (Pokémon Center PC, Hisuian Poké Ball, Odd Keystone) and Gen 3-5 PC wallpapers, see public/test/CREDITS.txt.
 const ICONS = { party: '/test/icons/team.png', grave: '/test/icons/grave.png' }
-// PC icon to try out: the PC from each game up to Gen 5 (Gen 4/5 recreated: 3D in game) and a few extras.
+// PC icon to try out: the PC from each game up to Gen 5 (Gen 5 recreated: 3D in game) and a few extras.
 const PC_ICONS = {
   'gen1-red': 'Red/Blue', 'gen2-crystal': 'Crystal', 'gen3-emerald': 'Emerald', 'gen3-frlg': 'FireRed/LeafGreen', 'gen4-dppt': 'Diamond/Pearl', 'gen5-bw': 'Black/White',
   'extra-center-drawn': 'Center PC (drawn)', 'extra-storage-box': 'Pokémon Box', 'extra-box-link': 'Box Link', 'extra-porygon': 'Porygon', 'extra-rotom': 'Rotom',
 }
-// ?v=2: the Pokémon Center versions (v1 were the house PCs), so browsers don't show cached old ones.
-const pcIconUrl = (k) => `/test/icons/pc/${k}.${k === 'extra-center-drawn' ? 'svg' : 'png'}?v=2`
+// ?v=3: bump when an icon changes, so browsers don't show a cached old one (v3: Gen 4 from The Spriters Resource).
+const pcIconUrl = (k) => `/test/icons/pc/${k}.${k === 'extra-center-drawn' ? 'svg' : 'png'}?v=3`
 const WALLPAPERS = {
   box: ['forest_e', 'savanna_e', 'river_e', 'sky_e', 'beach_e', 'seafloor_e', 'desert_e', 'snow_e', 'forest_dppt', 'river_dppt', 'sky_dppt', 'dp_backyard'],
   party: ['pokecenter_rs', 'pokecenter_e', 'pokecenter_frlg', 'pokecenter_dppt', 'pokecenter_bw', 'monochrome_bw1', 'polka_dot_e'],
