@@ -498,3 +498,55 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
 .skip-route { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.5rem; }
 .skip-route.clash { justify-content: space-between; padding: 0.4rem 0.6rem; border-radius: 10px; background: color-mix(in srgb, var(--accent) 10%, transparent); }
 }
+
+/* "My box", in-game PC style (Test only) */
+.test-box {
+  .pc { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: 1rem; align-items: start; margin-top: 0.9rem; }
+  @media (max-width: 760px) { .pc { grid-template-columns: 1fr; } }
+
+  .pc-panel {
+    display: grid; justify-items: center; gap: 0.3rem; min-height: 21rem; padding: 1rem 0.9rem; border-radius: 18px; text-align: center;
+    background: linear-gradient(170deg, #34425e, #1c2335); color: #fff; box-shadow: inset 0 0 0 3px rgb(255 255 255 / 0.08);
+  }
+  .pc-hint { margin: auto 0; color: rgb(255 255 255 / 0.6); font-size: 0.85rem; }
+  .panel-sprite { width: 128px; height: 128px; image-rendering: pixelated; margin: -0.4rem 0 -0.6rem; }
+  .panel-sprite.small { width: 64px; height: 64px; margin: 0; }
+  .pc-name { font-size: 1.2rem; letter-spacing: 0.02em; }
+  .pc-species, .pc-meta { color: rgb(255 255 255 / 0.65); font-size: 0.8rem; }
+  .pc-link { display: grid; justify-items: center; gap: 0.35rem; width: 100%; margin-top: 0.5rem; padding-top: 0.6rem; border-top: 2px dashed rgb(255 255 255 / 0.2); }
+  .pc-link-label { color: #ffd43b; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+  .pc-partner { display: flex; align-items: center; gap: 0.4rem; text-align: left; }
+  .pc-partner > div { display: grid; gap: 0.2rem; }
+  .pc-link .chip-button { margin-top: 0.3rem; }
+
+  .pc-box-game {
+    padding: 0.7rem 0.8rem 0.9rem; border: 4px solid #3f8a6b; border-radius: 18px;
+    background:
+      radial-gradient(circle at 25% 25%, rgb(255 255 255 / 0.22) 0 6px, transparent 7px) 0 0 / 48px 48px,
+      radial-gradient(circle at 75% 75%, rgb(255 255 255 / 0.14) 0 4px, transparent 5px) 0 0 / 48px 48px,
+      repeating-linear-gradient(135deg, #8fd3b0 0 18px, #82c9a5 18px 36px);
+    box-shadow: inset 0 -6px 0 rgb(0 0 0 / 0.08);
+  }
+  .pc-box-game.grave { border-color: #5f5874; background:
+      radial-gradient(circle at 25% 25%, rgb(255 255 255 / 0.12) 0 6px, transparent 7px) 0 0 / 48px 48px,
+      repeating-linear-gradient(135deg, #a9a3bd 0 18px, #9d97b3 18px 36px); }
+  .pc-head { display: flex; align-items: center; justify-content: center; gap: 0.6rem; width: min(100%, 20rem); margin: 0 auto 0.7rem; padding: 0.3rem 0.5rem; border-radius: 999px; background: rgb(255 255 255 / 0.88); box-shadow: 0 2px 0 rgb(0 0 0 / 0.12); }
+  .pc-head strong { flex: 1; text-align: center; text-transform: uppercase; letter-spacing: 0.12em; color: #1c2335; }
+  .pc-count { color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+  .pc-head button { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border: 0; border-radius: 50%; background: #3f8a6b; color: #fff; font-size: 0.7rem; cursor: pointer; }
+  .grave .pc-head button { background: #5f5874; }
+  .pc-head button:hover { filter: brightness(1.15); }
+
+  .pc-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.2rem; margin: 0; padding: 0; list-style: none; }
+  .pc-slot { aspect-ratio: 4 / 3; position: relative; }
+  .pc-slot button { display: grid; place-items: center; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 12px; background: none; cursor: pointer; }
+  .pc-slot button:hover, .pc-slot button:focus-visible { outline: none; background: rgb(255 255 255 / 0.35); }
+  .pc-slot.picked button { background: rgb(255 255 255 / 0.6); box-shadow: inset 0 0 0 3px #ffd43b; }
+  .pc-slot.picked::before { content: '▼'; position: absolute; top: -0.65rem; left: 50%; translate: -50% 0; color: #ffd43b; font-size: 0.8rem; text-shadow: 0 1px 0 #1c2335; z-index: 1; animation: pc-bob 0.8s ease-in-out infinite alternate; }
+  .box-icon { width: 64px; height: 48px; image-rendering: pixelated; transition: transform 0.12s; }
+  .box-icon.fallback { width: 52px; height: 52px; object-fit: contain; }
+  .pc-slot button:hover .box-icon { transform: translateY(-3px); }
+  .pc-slot.s-dead .box-icon, .pc-slot.s-failed .box-icon { filter: grayscale(1); opacity: 0.7; }
+  .pc-slot.s-pending .box-icon { opacity: 0.6; }
+}
+@keyframes pc-bob { to { translate: -50% 3px; } }
