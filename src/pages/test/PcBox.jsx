@@ -38,6 +38,13 @@ function makeViews(rows, me) {
   }
 }
 
+const Computer = () => (
+  <svg viewBox="0 0 24 24" width="38" height="38" aria-hidden="true">
+    <rect x="2.5" y="3.5" width="19" height="13" rx="2" fill="#4dabf7" stroke="#1c2335" strokeWidth="1.8" />
+    <rect x="5" y="6" width="14" height="8" rx="0.8" fill="#d0ebff" />
+    <path d="M9 20.5h6M12 16.5v4" stroke="#1c2335" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+)
 const Pokeball = () => (
   <svg viewBox="0 0 24 24" width="38" height="38" aria-hidden="true">
     <circle cx="12" cy="12" r="10.5" fill="#fff" stroke="#1c2335" strokeWidth="1.8" />
@@ -65,7 +72,7 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
   const boxes = makeViews(rows, me)[view]
   const box = boxes[Math.min(boxAt, boxes.length - 1)]
   const go = (step) => { setBoxAt((boxAt + step + boxes.length) % boxes.length); setHover(null) }
-  // The Pokéball and grave buttons switch to that view; pressing it again goes back to the boxes.
+  // PC, Pokéball and grave buttons switch view; pressing Pokéball or grave again goes back to the boxes.
   const show = (v) => { setView(view === v ? 'box' : v); setBoxAt(0); setHover(null) }
   const shown = rows.find((r) => r.area === (hover ?? picked))
   const sel = rows.find((r) => r.area === picked)
@@ -114,6 +121,9 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
               <span className="pc-count">{box.rows.length}/{box.slots}</span>
               <button type="button" onClick={() => go(1)} disabled={boxes.length < 2} aria-label="Next box">▶</button>
             </div>
+            <button type="button" className="pc-view" aria-pressed={view === 'box'} onClick={() => show('box')} title="PC boxes">
+              <Computer />
+            </button>
             <button type="button" className="pc-view" aria-pressed={view === 'party'} onClick={() => show('party')} title="Current team">
               <Pokeball />
             </button>
