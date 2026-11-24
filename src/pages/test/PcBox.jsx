@@ -39,14 +39,14 @@ function makeViews(rows, me) {
 }
 
 const Pokeball = () => (
-  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+  <svg viewBox="0 0 24 24" width="38" height="38" aria-hidden="true">
     <circle cx="12" cy="12" r="10.5" fill="#fff" stroke="#1c2335" strokeWidth="1.8" />
     <path d="M1.5 12a10.5 10.5 0 0 1 21 0z" fill="#e03131" stroke="#1c2335" strokeWidth="1.8" />
     <circle cx="12" cy="12" r="3.2" fill="#fff" stroke="#1c2335" strokeWidth="1.8" />
   </svg>
 )
 const Grave = () => (
-  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+  <svg viewBox="0 0 24 24" width="38" height="38" aria-hidden="true">
     <path d="M6 21V9a6 6 0 0 1 12 0v12z" fill="#ced4da" stroke="#1c2335" strokeWidth="1.8" strokeLinejoin="round" />
     <path d="M12 9v6M9.5 11.5h5" stroke="#1c2335" strokeWidth="1.8" strokeLinecap="round" />
     <path d="M3 21h18" stroke="#1c2335" strokeWidth="1.8" strokeLinecap="round" />
