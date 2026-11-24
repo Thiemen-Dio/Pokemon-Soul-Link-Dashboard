@@ -22,28 +22,51 @@ function PanelSprite({ id, small }) {
     onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = spriteUrl(id) }} />
 }
 
-/** Party (team), then Box 1, Box 2… (PC and waiting), then the Graveyard: like switching boxes in game. */
-function makeBoxes(rows, me) {
-  const mine = rows.filter((r) => r[`${me}_pokemon_id`])
-  const pc = mine.filter((r) => r.status === 'box' || r.status === 'pending')
-  const boxes = [{ name: 'Party', slots: 6, rows: mine.filter((r) => r.status === 'team') }]
-  for (let i = 0; i === 0 || i < pc.length; i += BOX_SIZE) boxes.push({ name: `Box ${i / BOX_SIZE + 1}`, slots: BOX_SIZE, rows: pc.slice(i, i + BOX_SIZE) })
-  const fallen = mine.filter((r) => r.status === 'dead' || r.status === 'failed')
-  for (let i = 0; i === 0 || i < fallen.length; i += BOX_SIZE) boxes.push({ name: fallen.length > BOX_SIZE ? `Graveyard ${i / BOX_SIZE + 1}` : 'Graveyard', slots: BOX_SIZE, rows: fallen.slice(i, i + BOX_SIZE), grave: true })
-  return boxes
+/** 30 per box: "Box 1, Box 2…" (or "Graveyard 1, 2…"), always at least one. */
+const pages = (list, name, extra) => {
+  const out = []
+  for (let i = 0; i === 0 || i < list.length; i += BOX_SIZE) out.push({ name: list.length > BOX_SIZE || name === 'Box' ? `${name} ${i / BOX_SIZE + 1}` : name, slots: BOX_SIZE, rows: list.slice(i, i + BOX_SIZE), ...extra })
+  return out
 }
+/** The three views: the PC boxes (PC and waiting), the party (team) and the graveyard (dead and failed). */
+function makeViews(rows, me) {
+  const mine = rows.filter((r) => r[`${me}_pokemon_id`])
+  return {
+    box: pages(mine.filter((r) => r.status === 'box' || r.status === 'pending'), 'Box'),
+    party: [{ name: 'Party', slots: 6, rows: mine.filter((r) => r.status === 'team') }],
+    grave: pages(mine.filter((r) => r.status === 'dead' || r.status === 'failed'), 'Graveyard', { grave: true }),
+  }
+}
+
+const Pokeball = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+    <circle cx="12" cy="12" r="10.5" fill="#fff" stroke="#1c2335" strokeWidth="1.8" />
+    <path d="M1.5 12a10.5 10.5 0 0 1 21 0z" fill="#e03131" stroke="#1c2335" strokeWidth="1.8" />
+    <circle cx="12" cy="12" r="3.2" fill="#fff" stroke="#1c2335" strokeWidth="1.8" />
+  </svg>
+)
+const Grave = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+    <path d="M6 21V9a6 6 0 0 1 12 0v12z" fill="#ced4da" stroke="#1c2335" strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M12 9v6M9.5 11.5h5" stroke="#1c2335" strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M3 21h18" stroke="#1c2335" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+)
 
 export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
   const [me, setMeState] = useState(() => { try { return localStorage.getItem('test-box-player') ?? 'p1' } catch { return 'p1' } })
   const setMe = (p) => { setMeState(p); setPicked(null); try { localStorage.setItem('test-box-player', p) } catch { /* not remembered */ } }
   const partner = me === 'p1' ? 'p2' : 'p1'
+  const [view, setView] = useState('box') // box | party | grave
   const [boxAt, setBoxAt] = useState(0)
   const [hover, setHover] = useState(null) // area
   const [picked, setPicked] = useState(null) // area: clicked, its two cards are open below
 
-  const boxes = makeBoxes(rows, me)
+  const boxes = makeViews(rows, me)[view]
   const box = boxes[Math.min(boxAt, boxes.length - 1)]
   const go = (step) => { setBoxAt((boxAt + step + boxes.length) % boxes.length); setHover(null) }
+  // The Pokéball and grave buttons switch to that view; pressing it again goes back to the boxes.
+  const show = (v) => { setView(view === v ? 'box' : v); setBoxAt(0); setHover(null) }
   const shown = rows.find((r) => r.area === (hover ?? picked))
   const sel = rows.find((r) => r.area === picked)
   const nameOf = (r, p) => r[`${p}_nickname`] || rosterById[r[`${p}_pokemon_id`]]?.label || '—'
@@ -84,11 +107,19 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
         </aside>
 
         <div className={box.grave ? 'pc-box-game grave' : 'pc-box-game'}>
-          <div className="pc-head">
-            <button type="button" onClick={() => go(-1)} aria-label="Previous box">◀</button>
-            <strong>{box.name}</strong>
-            <span className="pc-count">{box.rows.length}/{box.slots}</span>
-            <button type="button" onClick={() => go(1)} aria-label="Next box">▶</button>
+          <div className="pc-top">
+            <div className="pc-head">
+              <button type="button" onClick={() => go(-1)} disabled={boxes.length < 2} aria-label="Previous box">◀</button>
+              <strong>{box.name}</strong>
+              <span className="pc-count">{box.rows.length}/{box.slots}</span>
+              <button type="button" onClick={() => go(1)} disabled={boxes.length < 2} aria-label="Next box">▶</button>
+            </div>
+            <button type="button" className="pc-view" aria-pressed={view === 'party'} onClick={() => show('party')} title="Current team">
+              <Pokeball />
+            </button>
+            <button type="button" className="pc-view" aria-pressed={view === 'grave'} onClick={() => show('grave')} title="Graveyard: dead and failed">
+              <Grave />
+            </button>
           </div>
           <ul className={box.slots === 6 ? 'pc-grid party' : 'pc-grid'}>{/* every box has the same size */}
             {Array.from({ length: box.slots }, (_, i) => {

@@ -530,12 +530,17 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
   .pc-box-game.grave { border-color: #5f5874; background:
       radial-gradient(circle at 25% 25%, rgb(255 255 255 / 0.12) 0 6px, transparent 7px) 0 0 / 48px 48px,
       repeating-linear-gradient(135deg, #a9a3bd 0 18px, #9d97b3 18px 36px); }
-  .pc-head { display: flex; align-items: center; justify-content: center; gap: 0.6rem; width: min(100%, 20rem); margin: 0 auto 0.7rem; padding: 0.3rem 0.5rem; border-radius: 999px; background: rgb(255 255 255 / 0.88); box-shadow: 0 2px 0 rgb(0 0 0 / 0.12); }
+  .pc-top { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 0 auto 0.7rem; }
+  .pc-view { display: grid; place-items: center; width: 2.6rem; height: 2.6rem; padding: 0; border: 0; border-radius: 50%; background: rgb(255 255 255 / 0.88); box-shadow: 0 2px 0 rgb(0 0 0 / 0.12); cursor: pointer; transition: transform 0.12s; }
+  .pc-view:hover { transform: translateY(-2px); }
+  .pc-view[aria-pressed='true'] { background: #ffd43b; box-shadow: 0 0 0 3px #fff, 0 2px 0 rgb(0 0 0 / 0.12); }
+  .pc-head { display: flex; align-items: center; justify-content: center; gap: 0.6rem; width: min(100%, 20rem); margin: 0; padding: 0.3rem 0.5rem; border-radius: 999px; background: rgb(255 255 255 / 0.88); box-shadow: 0 2px 0 rgb(0 0 0 / 0.12); }
   .pc-head strong { flex: 1; text-align: center; text-transform: uppercase; letter-spacing: 0.12em; color: #1c2335; }
   .pc-count { color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
   .pc-head button { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border: 0; border-radius: 50%; background: #3f8a6b; color: #fff; font-size: 0.7rem; cursor: pointer; }
   .grave .pc-head button { background: #5f5874; }
   .pc-head button:hover { filter: brightness(1.15); }
+  .pc-head button:disabled { opacity: 0.35; cursor: default; filter: none; }
 
   /* Fixed size for every box (Party, Box n, Graveyard): 6×5 slots, Party 3×2 bigger ones. */
   .pc-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-rows: repeat(5, 1fr); gap: 0.25rem; height: 40rem; margin: 0; padding: 0; list-style: none; }
