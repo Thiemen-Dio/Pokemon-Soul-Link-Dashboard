@@ -598,7 +598,7 @@ function NextEncounters({ run, gen, row, save, roster, rosterById, families, enc
         {known && <button type="button" className="chip-button" onClick={() => setSearching((s) => !s)}>{searching ? 'Back to the route list' : 'Not listed? Search all'}</button>}
       </div>
       {!known && <p className="status small-print">Randomized run: search what you found. Upload the randomizer log (Scouting) to see each route’s real Pokémon here.</p>}
-      {!search && state.source === 'log' && <p className="status small-print">From your randomizer log.</p>}
+      {!search && state.source === 'log' && <p className="status small-print">From your randomizer log, so only your game. Enter what you each caught in the area above, or use “Search all”.</p>}
       {!search && state.status === 'loading' && <p className="status">Loading encounters…</p>}
       {!search && state.status === 'error' && <p className="status error">{state.message}</p>}
       {!search && state.status === 'ready' && list.length === 0 && <p className="status">No list for this area. Use “Search all”.</p>}
@@ -615,13 +615,14 @@ function NextEncounters({ run, gen, row, save, roster, rosterById, families, enc
                 <span className="types">{entry && rosterTypesInGeneration(entry, gen).map((t) => <TypeBadge key={t} type={t} small />)}</span>
                 {dupe && <span className="slot-warning">Dupe: {names[dupe.player]} has this line ({dupe.area})</span>}
               </div>
-              <div className="pick-buttons">
+              {/* A log is one player's game, so its list is for looking only. Later: both logs online, one list per player. */}
+              {(search || state.source !== 'log') && <div className="pick-buttons">
                 {free.map((p) => (
                   <button key={p} type="button" className="chip-button" onClick={() => save({ [`${p}_pokemon_id`]: m.id })} title={`${names[p]} caught this on ${row.area}`}>
                     {names[p]}
                   </button>
                 ))}
-              </div>
+              </div>}
             </li>
           )
         })}
