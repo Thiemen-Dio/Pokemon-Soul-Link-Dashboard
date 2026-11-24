@@ -9,7 +9,7 @@ import { gameLabel } from '../../../api/games.js'
 import TypeBadge from './TypeBadge.jsx'
 import { Run } from './RunLog.jsx'
 import { PLAYERS, TEAM_SIZE, areaRows, primaryType, teamClash } from '../../../soullink/rules.js'
-import { GIFTS, LEVEL_CAPS, catches, getAreaEncounters, getNextEvolutions, locationSlug, logEncounters, logSetsFor, parseRandomizerLog, teamPrimaryTypes, timeAgo, versionOf } from './data.js'
+import { GIFTS, LEVEL_CAPS, catches, getAreaEncounters, getNextEvolutions, locationSlug, logAreas, logEncounters, logSetsFor, parseRandomizerLog, teamPrimaryTypes, timeAgo, versionOf } from './data.js'
 import { STARTERS } from '../../../components/starters.js'
 import Medals, { overallAchievements, runAchievements } from './Achievements.jsx'
 import NewRunButton from './RunSetup.jsx'
@@ -275,8 +275,6 @@ const readBeaten = (runId) => { try { return Number(localStorage.getItem(`dash-b
 function RunLab({ run, encounters, setEncounters, roster, rosterById, families, onError, onRunChange }) {
   const gen = run.generation
   const names = { p1: run.player1_name, p2: run.player2_name }
-  const rows = areaRows(run.base_game, encounters)
-  const team = rows.filter((r) => r.status === 'team')
   const chart = useChart(gen)
   const [beaten, setBeatenState] = useState(() => readBeaten(run.id))
   const setBeaten = (n) => { setBeatenState(n); try { localStorage.setItem(`dash-beaten-${run.id}`, String(n)) } catch { /* not remembered */ } }
@@ -287,6 +285,10 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
     setLogState(l)
     try { if (l) localStorage.setItem(logKey, JSON.stringify(l)); else localStorage.removeItem(logKey) } catch { /* kept until reload */ }
   }
+  // Games without a built-in area list (e.g. Ultra Sun / Ultra Moon) take their areas from the log.
+  const areasFromLog = useMemo(() => (log ? logAreas(log.sets) : []), [log])
+  const rows = areaRows(run.base_game, encounters, areasFromLog)
+  const team = rows.filter((r) => r.status === 'team')
   const props = { run, gen, names, rows, team, encounters, roster, rosterById, families, chart, log }
 
   // Save fields on one area (favourite, a Pokémon's build, an evolution) and show it straight away.
@@ -316,7 +318,7 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
           <div className="soullink">
             <Run
               run={run} encounters={encounters} setEncounters={setEncounters} roster={roster} families={families} onError={onError} onRunChange={onRunChange}
-              compact
+              compact logAreas={areasFromLog}
               renderNext={(row, save) => <NextEncounters {...props} row={row} save={save} />}
             />
           </div>

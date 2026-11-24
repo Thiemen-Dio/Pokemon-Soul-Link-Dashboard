@@ -32,7 +32,7 @@ const ENCOUNTER_FILTERS = {
  * compact: rows fold to one line, only the next area (or the one clicked) is open,
  * with renderNext(row, save) shown under it. Used by the dashboard run page.
  */
-export function Run({ run, encounters, setEncounters, roster, families, onError, onRunChange, compact, renderNext }) {
+export function Run({ run, encounters, setEncounters, roster, families, onError, onRunChange, compact, renderNext, logAreas }) {
   const gen = run.generation
   const names = { p1: run.player1_name, p2: run.player2_name }
 
@@ -40,7 +40,7 @@ export function Run({ run, encounters, setEncounters, roster, families, onError,
   const options = useMemo(() => (roster ?? []).filter((e) => e.generation <= gen), [roster, gen])
   const rosterById = useMemo(() => Object.fromEntries((roster ?? []).map((e) => [e.id, e])), [roster])
   const conflicts = useMemo(() => typeConflicts(encounters, rosterById, gen), [encounters, rosterById, gen])
-  const rows = useMemo(() => areaRows(run.base_game, encounters), [run.base_game, encounters])
+  const rows = useMemo(() => areaRows(run.base_game, encounters, logAreas), [run.base_game, encounters, logAreas])
 
   async function save(row, changes) {
     const merged = { ...row, ...changes }

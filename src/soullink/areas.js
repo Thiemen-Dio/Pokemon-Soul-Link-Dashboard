@@ -107,7 +107,7 @@ const EMERALD = [
 
 const AREAS = { 'black-white': BLACK_WHITE, emerald: EMERALD }
 
-/** The template areas for a base game, with a sort order: [{ area, sortOrder }]. */
-export function templateAreas(baseGame) {
-  return (AREAS[baseGame] ?? ['Starter']).map((area, i) => ({ area, sortOrder: (i + 1) * 10 }))
+/** The template areas for a base game, with a sort order: [{ area, sortOrder }]. Games without a list use logAreas (from a randomizer log). */
+export function templateAreas(baseGame, logAreas = []) {
+  return (AREAS[baseGame] ?? ['Starter', ...logAreas]).map((area, i) => ({ area, sortOrder: (i + 1) * 10 }))
 }

@@ -90,9 +90,9 @@ export function statusAfterCatch(encounters, current) {
  * Rows to show: every template area for the game (saved or not) plus custom areas,
  * in game order. Unsaved rows have no id.
  */
-export function areaRows(baseGame, encounters) {
+export function areaRows(baseGame, encounters, logAreas) {
   const saved = Object.fromEntries(encounters.map((e) => [e.area, e]))
-  const rows = templateAreas(baseGame).map(({ area, sortOrder }) => ({
+  const rows = templateAreas(baseGame, logAreas).map(({ area, sortOrder }) => ({
     ...(saved[area] ?? emptyEncounter(area)),
     sort_order: sortOrder,
     template: true,
