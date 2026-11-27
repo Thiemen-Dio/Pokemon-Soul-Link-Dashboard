@@ -560,3 +560,15 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
   .pc-slot.s-pending .box-icon { opacity: 0.6; }
 }
 @keyframes pc-bob { to { translate: -50% 3px; } }
+
+/* Run Pokédex button (next to the graveyard), its icon try-out row, and the Pokédex itself. */
+.pc-dex img { image-rendering: pixelated; object-fit: contain; }
+.dex-icon-tryout { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0.6rem 0; }
+.dex-icon-tryout button { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem 0.2rem 0.25rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+.dex-icon-tryout button[aria-pressed='true'] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.dex-icon-tryout img { image-rendering: pixelated; object-fit: contain; }
+.pc-dex-panel { margin-top: 0.8rem; }
+.run-dex-all section { margin-bottom: 0.6rem; }
+.run-dex li.got { box-shadow: inset 0 0 0 2px #2f9e44; }
+.run-dex li.line img { filter: none; opacity: 1; }
+.run-dex li.line { outline: 2px dashed color-mix(in srgb, #2f9e44 65%, transparent); outline-offset: -3px; }

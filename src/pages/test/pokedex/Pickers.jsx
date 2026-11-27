@@ -64,8 +64,8 @@ export function TypeChips({ value, onChange, multi, onMulti }) {
     const next = toggle(types, t, multi)
     onChange({ types: next, primary: next.includes(primary) ? primary : null })
   }
-  // Double-tap: this type becomes the primary (or stops being it). Its two clicks already ran, so re-add it.
-  const doubleTap = (t) => onChange({ types: types.includes(t) ? types : multi ? [...types, t] : [t], primary: primary === t ? null : t })
+  // Double-tap: this type becomes the primary and the only pick (double-tap again: back to a normal pick).
+  const doubleTap = (t) => onChange({ types: [t], primary: primary === t ? null : t })
   return (
     <div className="chip-picker">
       <span className="chip-title">Type</span>

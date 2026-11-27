@@ -5,7 +5,17 @@ import { spriteUrl } from '../../api/pokeapi.js'
 import { rosterTypesInGeneration } from '../../api/pokeapiGraphql.js'
 import { PLAYERS } from '../../soullink/rules.js'
 import MonCard from './MonCard.jsx'
+import RunDex from './RunDex.jsx'
 import TypeBadge from './TypeBadge.jsx'
+
+// Try-out: four Pokédex icons for the Run Pokédex button (Bulbagarden Archives, loaded from there until one is picked).
+const BULBA = 'https://archives.bulbagarden.net/media/upload'
+const DEX_ICONS = [
+  { id: 'platinum', label: 'Platinum menu', src: `${BULBA}/e/ea/Menu_Icon_Pokedex_Platinum.png` },
+  { id: 'key-pink', label: 'Pokédex key item (pink)', src: `${BULBA}/7/7a/Key_Pok%C3%A9dex_f_Sprite.png` },
+  { id: 'key', label: 'Pokédex key item', src: `${BULBA}/9/9f/Key_Pok%C3%A9dex_m_Sprite.png` },
+  { id: 'rotom', label: 'Rotom Pokédex', src: `${BULBA}/9/98/Key_Rotom_Pok%C3%A9dex_Sprite.png` },
+]
 
 const VERSIONS = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions'
 const BOX_SIZE = 30
@@ -49,7 +59,11 @@ const WALLPAPERS = {
 const WALL_DIR = { box: 'box', party: 'team', grave: 'grave' }
 const randomWall = (view) => { const list = WALLPAPERS[view]; return `/test/wallpapers/${WALL_DIR[view]}/${list[Math.floor(Math.random() * list.length)]}.png` }
 
-export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
+export default function PcBox({ run, rows, rosterById, names, chart, onSave, encounters, families }) {
+  const [dexOpen, setDexOpen] = useState(false)
+  const [dexIcon, setDexIconState] = useState(() => { try { return localStorage.getItem('test-dex-icon') ?? 'platinum' } catch { return 'platinum' } })
+  const setDexIcon = (id) => { setDexIconState(id); try { localStorage.setItem('test-dex-icon', id) } catch { /* not remembered */ } }
+  const dexSrc = DEX_ICONS.find((i) => i.id === dexIcon)?.src ?? DEX_ICONS[0].src
   const [me, setMeState] = useState(() => { try { return localStorage.getItem('test-box-player') ?? 'p1' } catch { return 'p1' } })
   const setMe = (p) => { setMeState(p); setPicked(null); try { localStorage.setItem('test-box-player', p) } catch { /* not remembered */ } }
   const partner = me === 'p1' ? 'p2' : 'p1'
@@ -121,6 +135,9 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
             <button type="button" className="pc-view" aria-pressed={view === 'grave'} onClick={() => show('grave')} title="Graveyard: dead and failed">
               <img src={ICONS.grave} alt="" width="48" height="48" />
             </button>
+            <button type="button" className="pc-view pc-dex" aria-pressed={dexOpen} onClick={() => setDexOpen((o) => !o)} title="Run Pokédex: everything caught, whole evolution lines count">
+              <img src={dexSrc} alt="" width="48" height="48" />
+            </button>
           </div>
           <ul className={box.slots === 6 ? 'pc-grid party' : 'pc-grid'}>{/* every box has the same size */}
             {Array.from({ length: box.slots }, (_, i) => {
@@ -140,6 +157,22 @@ export default function PcBox({ run, rows, rosterById, names, chart, onSave }) {
           </ul>
         </div>
       </div>
+
+      <div className="dex-icon-tryout" role="group" aria-label="Pokédex icon (try-out)">
+        <span className="small-print">Pokédex icon, pick one:</span>
+        {DEX_ICONS.map((i) => (
+          <button key={i.id} type="button" aria-pressed={dexIcon === i.id} onClick={() => setDexIcon(i.id)} title={i.label}>
+            <img src={i.src} alt="" width="40" height="40" /><span className="small-print">{i.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {dexOpen && (
+        <div className="dash-card pc-dex-panel">
+          <h3>Run Pokédex</h3>
+          <RunDex encounters={encounters ?? []} rosterById={rosterById} families={families ?? {}} />
+        </div>
+      )}
 
       {sel && (
         <div className="pair-cards">

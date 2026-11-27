@@ -1,13 +1,14 @@
 // Test playground: try new ideas here before they go to prod (src/pages/prod).
 // Same database as prod: anything that saves here (a card's moves, item, evolving) changes the real runs.
 // Each project is its own tab and is released to prod on its own:
-//   PC box (PcBox.jsx + MonCard.jsx) · Pokédex (pokedex/) · Run page (run/).
+//   PC box (PcBox.jsx + MonCard.jsx) · Pokédex (pokedex/) · Run page (run/) · Achievements (achievements/).
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink, Navigate, useParams } from 'react-router-dom'
 import PokedexProject from './pokedex/PokemonTab.jsx'
 import { TestRunPage } from './run/MyRuns.jsx'
+import AchievementsProject from './achievements/AchievementsProject.jsx'
 import { chartForGeneration, getTypeData } from '../../api/pokeapi.js'
-import { getTypeRoster } from '../../api/pokeapiGraphql.js'
+import { getEvolutionFamilies, getTypeRoster } from '../../api/pokeapiGraphql.js'
 import { getEncounters, getRuns, saveEncounter } from '../../api/soullink.js'
 import { gameLabel } from '../../api/games.js'
 import { areaRows, teamClash } from '../../soullink/rules.js'
@@ -18,6 +19,7 @@ const PROJECTS = [
   { id: 'pc', label: 'PC box' },
   { id: 'pokedex', label: 'Pokédex' },
   { id: 'run', label: 'Run page' },
+  { id: 'achievements', label: 'Achievements' },
 ]
 
 /** /test/:project — one tab per test project. */
@@ -37,6 +39,7 @@ export default function Test() {
         </section>
       )}
       {project === 'run' && <TestRunPage />}
+      {project === 'achievements' && <AchievementsProject />}
     </>
   )
 }
@@ -47,6 +50,7 @@ function PcBoxProject() {
   const [encounters, setEncounters] = useState(null)
   const [roster, setRoster] = useState([])
   const [chart, setChart] = useState(null)
+  const [families, setFamilies] = useState({})
   const [error, setError] = useState('')
 
   // Runs, newest first; start on the run in progress.
@@ -57,6 +61,7 @@ function PcBoxProject() {
       setRunId((sorted.find((r) => r.status === 'active') ?? sorted[0])?.id ?? null)
     }).catch((e) => setError(e.message))
     getTypeRoster().then(setRoster).catch(() => setError('Couldn’t load Pokémon data from PokeAPI.'))
+    getEvolutionFamilies().then(setFamilies).catch(() => setFamilies({}))
   }, [])
   const run = runs?.find((r) => r.id === runId)
   const gen = run?.generation
@@ -102,7 +107,7 @@ function PcBoxProject() {
       {error && <p className="status error">{error}</p>}
       {!run || !encounters ? <p className="status">Loading…</p> : (
         <div className="dash-card">
-          <PcBox run={run} rows={areaRows(run.base_game, encounters)} rosterById={rosterById}
+          <PcBox run={run} rows={areaRows(run.base_game, encounters)} encounters={encounters} families={families} rosterById={rosterById}
             names={{ p1: run.player1_name, p2: run.player2_name }} chart={chart} onSave={saveRow} />
         </div>
       )}

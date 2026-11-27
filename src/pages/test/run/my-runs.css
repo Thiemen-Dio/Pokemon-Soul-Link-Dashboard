@@ -531,3 +531,14 @@ button.move-block.empty:hover:not(:disabled) { border-color: var(--accent); colo
 .move-picker .move-block:hover:not(:disabled) { outline: 2px solid var(--accent); outline-offset: -2px; }
 .move-picker .move-block:disabled { opacity: 0.4; cursor: default; }
 .move-lv { grid-row: 1 / span 2; align-self: center; min-width: 2.6rem; font-size: 0.75rem; font-weight: 700; color: var(--muted); }
+
+/* Filled move slot: click for its info; shuffle = swap (opens the picker), × = forget. */
+.move-block.filled { padding-right: 3.4rem; }
+.move-main { display: grid; gap: 0.1rem; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.move-actions { position: absolute; top: 0.3rem; right: 0.3rem; display: flex; gap: 0.15rem; }
+.move-actions .move-forget { position: static; }
+.move-swap { display: grid; place-items: center; width: 1.3rem; height: 1.3rem; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer; }
+.move-swap:hover { background: var(--track); color: var(--accent); }
+.move-block.active { grid-column: 1 / -1; }
+.move-block.swapping { outline: 2px dashed var(--accent); outline-offset: -2px; }
+.move-info { display: grid; gap: 0.2rem; padding-top: 0.35rem; margin-top: 0.2rem; border-top: 1px solid color-mix(in srgb, var(--type-color) 35%, transparent); }

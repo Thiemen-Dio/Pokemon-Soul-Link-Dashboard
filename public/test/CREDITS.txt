@@ -6,3 +6,5 @@ Test tab assets (Pokémon is © Nintendo / Creatures / GAME FREAK; used for a pr
 - icons/pc.png: the Diamond/Pearl Pokémon Center PC from The Spriters Resource,
   https://www.spriters-resource.com/ds_dsi/pokemondiamondpearl/asset/6974/ (source: docs/sprite-sources/gen4_pc.png),
   dark and white outline added, sized to match the other two icons
+- Pokédex icon try-out (PC box): Platinum menu icon and Diamond/Pearl + Rotom Pokédex key item sprites from
+  Bulbagarden Archives, https://archives.bulbagarden.net (shown from there until one is picked; then save it here)

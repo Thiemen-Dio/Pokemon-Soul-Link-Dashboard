@@ -62,6 +62,18 @@ const valueColor = (v) => (v < 30 ? '#f34444' : v < 60 ? '#ff7f0f' : v < 90 ? '#
 
 const toSaved = (m) => ({ id: m.id, name: m.name, type: m.type, power: m.power, category: m.category })
 
+/** A filled move slot, opened: what the move does. */
+function MoveInfo({ move }) {
+  return (
+    <div className="move-info">
+      <span className="small-print">
+        {move.accuracy ? `${move.accuracy}% accuracy` : 'Never misses'}{move.pp ? ` · ${move.pp} PP` : ''}{move.priority ? ` · priority ${move.priority > 0 ? '+' : ''}${move.priority}` : ''}
+      </span>
+      {move.short && <span className="small-print">{move.short}</span>}
+    </div>
+  )
+}
+
 /** Abilities this Pokémon can have in the run's generation (none before Gen 3, hidden ones from Gen 5). */
 function useAbilityOptions(id, gen) {
   const [list, setList] = useState(null)
@@ -113,8 +125,10 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
   const [movesOpen, setMovesOpen] = useState(false) // the move picker under the four blocks
   const [moveTab, setMoveTab] = useState('level')
   const [moveText, setMoveText] = useState('')
+  const [activeMove, setActiveMove] = useState(null) // index of the filled slot showing its info
+  const [swapAt, setSwapAt] = useState(null) // index the picker replaces (null = adds a move)
   const moveRef = useRef(null)
-  const closeMoves = useMemo(() => () => setMovesOpen(false), [])
+  const closeMoves = useMemo(() => () => { setMovesOpen(false); setSwapAt(null); setActiveMove(null) }, [])
   useClickOutside(moveRef, closeMoves, movesOpen)
   const [itemsOpen, setItemsOpen] = useState(false)
   const itemRef = useRef(null)
@@ -126,10 +140,19 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
 
   const saveBuild = (changes) => onSave(row, { [`${player}_build`]: { ...build, ...changes } })
   function addMove(m) {
-    if (moves.length >= 4 || moves.some((x) => x.id === m.id)) return
+    if (moves.some((x) => x.id === m.id)) return
+    if (swapAt !== null) {
+      // Swap: the picked move takes the slot's place.
+      saveBuild({ moves: moves.map((x, i) => (i === swapAt ? toSaved(m) : x)) })
+      closeMoves()
+      return
+    }
+    if (moves.length >= 4) return
     if (moves.length === 3) setMovesOpen(false)
     saveBuild({ moves: [...moves, toSaved(m)] })
   }
+  const forget = (i) => { saveBuild({ moves: moves.filter((_, j) => j !== i) }); closeMoves() }
+  const swap = (i) => { setSwapAt(i); setMovesOpen(true) }
   // The open tab's moves, filtered by the search text.
   const q = moveText.trim().toLowerCase()
   const tabMoves = !moveOptions ? [] : (moveTab === 'level' ? moveOptions.level : moveOptions[moveTab].map((move) => ({ move })))
@@ -236,23 +259,33 @@ export default function MonCard({ run, row, player, names, rosterById, chart, on
           {[0, 1, 2, 3].map((i) => {
             const m = moves[i]
             if (m) {
+              const active = activeMove === i
               return (
-                <div key={i} className="move-block" style={{ '--type-color': TYPE_COLORS[m.type] }}>
-                  <strong>{displayName(m.name)}</strong>
-                  <span className="small-print move-meta"><CategoryIcon category={m.category} size={15} />{displayName(m.type)} · {m.power ? `${m.power} power` : 'status'}</span>
-                  <button type="button" className="move-forget" onClick={() => saveBuild({ moves: moves.filter((x) => x.id !== m.id) })} aria-label={`Forget ${displayName(m.name)}`}>×</button>
+                <div key={i} className={['move-block filled', active && 'active', swapAt === i && 'swapping'].filter(Boolean).join(' ')} style={{ '--type-color': TYPE_COLORS[m.type] }}>
+                  <button type="button" className="move-main" aria-expanded={active} onClick={() => setActiveMove(active ? null : i)} title="Show this move">
+                    <strong>{displayName(m.name)}</strong>
+                    <span className="small-print move-meta"><CategoryIcon category={m.category} size={15} />{displayName(m.type)} · {m.power ? `${m.power} power` : 'status'}</span>
+                  </button>
+                  <span className="move-actions">
+                    <button type="button" className="move-swap" onClick={() => swap(i)} aria-label={`Swap ${displayName(m.name)} for another move`} title="Swap for another move">
+                      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2 4h3.5l5 8H14M2 12h3.5L7 9.6M9 6.4 10.5 4H14M12 2l2 2-2 2M12 10l2 2-2 2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    </button>
+                    <button type="button" className="move-forget" onClick={() => forget(i)} aria-label={`Forget ${displayName(m.name)}`} title="Forget this move">×</button>
+                  </span>
+                  {active && <MoveInfo move={moveOptions?.byId[m.id] ?? m} />}
                 </div>
               )
             }
             return (
-              <button key={i} type="button" className="move-block empty" disabled={i !== moves.length} aria-expanded={i === moves.length ? movesOpen : undefined} onClick={() => setMovesOpen((o) => !o)}>
+              <button key={i} type="button" className="move-block empty" disabled={i !== moves.length} aria-expanded={i === moves.length ? movesOpen : undefined} onClick={() => { setSwapAt(null); setMovesOpen((o) => !o) }}>
                 {i === moves.length ? '+ Move' : ''}
               </button>
             )
           })}
         </div>
         {movesOpen && (
-          <div className="item-picker-wrap" onKeyDown={(e) => e.key === 'Escape' && setMovesOpen(false)}>
+          <div className="item-picker-wrap" onKeyDown={(e) => e.key === 'Escape' && closeMoves()}>
+            {swapAt !== null && moves[swapAt] && <p className="status small-print">Pick a move to replace {displayName(moves[swapAt].name)}.</p>}
             <div className="tabs" role="group" aria-label="Move kind">
               {MOVE_TABS.map(([k, label]) => (
                 <button key={k} type="button" aria-pressed={moveTab === k} onClick={() => setMoveTab(k)}>

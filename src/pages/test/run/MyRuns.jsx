@@ -371,7 +371,6 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
       {settingsOpen && <RunSettings run={run} rows={rows} log={log} setLog={setLog} onRunChange={onRunChange} onClose={() => setSettingsOpen(false)} me={me} setMe={setMe} />}
       <Category id="cat-now" title={run.name} note={`${gameLabel(run.base_game)} · Pokémon Gen ${gen} · moves Gen ${settings.movesGen}${run.randomized ? ' · Randomized' : ''} · ${names.p1} & ${names.p2}${me ? ` · you are ${names[me]}` : ''}`}
         action={<button type="button" className="chip-button" onClick={() => setSettingsOpen(true)}>⚙ Settings</button>}>
-        <Timeline rows={rows} small />
         <NextUp {...props} beaten={beaten} />
         <Card id="planner" title="Team planner" idea="Both sixes side by side. Click a slot to add a pair, pin the ones you want to keep, then pick what matters and flip through the options.">
           <TeamPlanner {...props} onSave={saveRow} />
@@ -433,7 +432,7 @@ function RunLab({ run, encounters, setEncounters, roster, rosterById, families, 
         <Card id="overlay" title="Stream overlay" idea="A strip of linked pairs for OBS, at /overlay?run=Name (see-through, updates live)." folded>
           <Overlay {...props} />
         </Card>
-        <Card id="share" title="Share the run" idea="A short, fun update for friends: tap Share (phone) or Copy and paste it in WhatsApp or Discord.">
+        <Card id="share" title="Share the run" idea="A quick update for the group chat. Share (phone) or Copy, and “Another one” for a different vibe.">
           <ShareSummary {...props} />
         </Card>
       </Category>
@@ -731,23 +730,18 @@ function NextEncounters({ run, gen, row, save, roster, rosterById, families, enc
 const BOX_FILTERS = { all: ['All', null], alive: ['Alive', ['team', 'box']], team: ['Team', ['team']], box: ['PC', ['box']], dead: ['Dead', ['dead', 'failed']] }
 
 /** Every caught pair as linked sprites, like a PC box. Click a pair for both Pokémon's cards. */
-function PcBox({ run, rows, rosterById, names, chart, onSave, settings, encounters, families }) {
+function PcBox({ run, rows, rosterById, names, chart, onSave, settings }) {
   const [filter, setFilter] = useState('all')
   const [open, setOpen] = useState(null) // { area, player }
-  const [dexOpen, setDexOpen] = useState(false)
   const pairs = rows.filter((r) => (r.p1_pokemon_id || r.p2_pokemon_id) && (!BOX_FILTERS[filter][1] || BOX_FILTERS[filter][1].includes(r.status)))
   const sel = rows.find((r) => r.area === open?.area)
   const label = (r, p) => nickname(r, p, settings) || rosterById[r[`${p}_pokemon_id`]]?.label || '—'
   return (
     <>
-      <div className="toolbar">
-        <div className="tabs encounter-filter" role="group" aria-label="Show pairs">
-          {Object.entries(BOX_FILTERS).map(([k, [text]]) => <button key={k} type="button" aria-pressed={filter === k} onClick={() => setFilter(k)}>{text}</button>)}
-        </div>
-        <button type="button" className="chip-button" aria-expanded={dexOpen} onClick={() => setDexOpen((o) => !o)}>{dexOpen ? 'Back to the box' : 'Run Pokédex'}</button>
+      <div className="tabs encounter-filter" role="group" aria-label="Show pairs">
+        {Object.entries(BOX_FILTERS).map(([k, [text]]) => <button key={k} type="button" aria-pressed={filter === k} onClick={() => setFilter(k)}>{text}</button>)}
       </div>
-      {dexOpen && <RunDex encounters={encounters} rosterById={rosterById} families={families} />}
-      {dexOpen ? null : pairs.length === 0 ? <p className="status">Nothing here yet.</p> : (
+      {pairs.length === 0 ? <p className="status">Nothing here yet.</p> : (
         <ul className="pc-box">
           {pairs.map((r) => (
             <li key={r.area} className={`s-${r.status}`}>
@@ -956,42 +950,6 @@ function AllRunStats({ runs, byRun, rosterById }) {
   )
 }
 
-// ---- Run Pokédex ----
-
-/**
- * Every species of every generation. Caught = in colour with a solid ring. Catching one member of an
- * evolution line counts for the whole line: the rest are in colour with a dashed outline. Others: silhouettes.
- */
-function RunDex({ encounters, rosterById, families }) {
-  const caught = new Set(catches(encounters).map((c) => rosterById[c.id]?.dex ?? c.id))
-  const familyOf = (dex) => families[dex] ?? -dex
-  const caughtLines = new Set([...caught].map(familyOf))
-  // Base forms only: regional forms share a dex number.
-  const species = Object.values(rosterById).filter((e) => e.id === e.dex)
-  const byGen = Object.entries(Object.groupBy(species, (s) => s.generation))
-  const lines = species.filter((s) => caughtLines.has(familyOf(s.dex))).length
-  return (
-    <div className="run-dex-all">
-      <p className="status">{caught.size} species caught, which covers {lines} of {species.length} Pokémon through their evolution lines.</p>
-      {byGen.map(([g, list]) => (
-        <section key={g}>
-          <h4 className="mini-title">Gen {g} · {list.filter((s) => caughtLines.has(familyOf(s.dex))).length}/{list.length}</h4>
-          <ul className="run-dex">
-            {list.map((s) => {
-              const state = caught.has(s.dex) ? 'got' : caughtLines.has(familyOf(s.dex)) ? 'line' : ''
-              return (
-                <li key={s.id} className={state} title={`${s.label}${state === 'got' ? ': caught' : state === 'line' ? ': its line is caught' : ''}`}>
-                  <img src={spriteUrl(s.id)} alt={s.label} width="48" height="48" loading="lazy" className="pixel" />
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      ))}
-    </div>
-  )
-}
-
 // ---- Evolution watch ----
 
 /**
@@ -1090,18 +1048,20 @@ function Players({ encounters, rosterById, gen, names }) {
 
 // ---- Share summary ----
 
-// Openers and mood lines for the share text; "Another one" cycles through them.
+// Openers and mood lines for the share text; "Another one" cycles through them. Casual on purpose: it's for group chats.
 const OPENERS = [
-  (n, g) => `🔗 ${n.p1} & ${n.p2} are chained together in ${g}: if one Pokémon falls, its partner goes down with it.`,
-  (n, g) => `🔗 Soul Link update from ${g}! ${n.p1} and ${n.p2} share every catch and every loss.`,
-  (n, g) => `🔗 ${n.p1} + ${n.p2}, two games, one fate. Here’s how ${g} is going:`,
+  (n, g) => `${g} soul link update 🔗 ${n.p1} x ${n.p2}`,
+  (n, g) => `${n.p1} & ${n.p2} vs ${g} 🔗 one dies, both die. no take-backs`,
+  (n, g) => `🔗 two trainers, one shared braincell. ${g} check-in:`,
+  (n, g) => `pov: ${n.p1} and ${n.p2} are chained together in ${g} 🔗`,
 ]
 function moodLine(dead, used) {
-  if (used === 0) return 'Fresh start. Nobody has been hurt… yet. 😇'
-  if (dead === 0) return 'Not a single loss so far. Suspicious. 😎'
-  if (dead <= 2) return `${dead} pair${dead > 1 ? 's' : ''} lost. Still standing. 💪`
-  if (dead <= 5) return `${dead} pairs gone. The graveyard is filling up. 🪦`
-  return `${dead} pairs lost. This is getting rough. 😬`
+  if (used === 0) return 'just started. nobody’s died. yet 👀'
+  if (dead === 0) return '0 deaths. we’re actually goated 😤'
+  if (dead === 1) return '1 pair down. it’s fine. we’re fine 🙂'
+  if (dead <= 3) return `${dead} pairs down. lowkey stressing 😬`
+  if (dead <= 6) return `${dead} pairs gone. the graveyard is packed fr 🪦`
+  return `${dead} pairs gone. this run is cooked 💀`
 }
 
 function ShareSummary({ run, rows, team, rosterById, names, settings }) {
@@ -1112,15 +1072,15 @@ function ShareSummary({ run, rows, team, rosterById, names, settings }) {
   const caught = rows.filter((r) => r.p1_pokemon_id && r.p2_pokemon_id).length
   const name = (r) => pairName(r, rosterById, settings)
   const lastLoss = dead.at(-1)
-  const status = run.status === 'won' ? '🏆 We beat the game!' : run.status === 'lost' ? '💀 The run is over.' : null
+  const status = run.status === 'won' ? '🏆 WE BEAT IT. no notes.' : run.status === 'lost' ? '💀 it’s over. we had a good run (we did not)' : null
   const text = [
     OPENERS[take % OPENERS.length](names, run.name),
     '',
     status,
-    `📍 ${used} of ${rows.length} areas done · ${caught} pairs caught`,
+    `📍 ${used}/${rows.length} areas · ${caught} pairs caught`,
     moodLine(dead.length, used),
-    team.length ? `⚔️ The squad: ${team.map(name).join(', ')}` : '⚔️ No team yet, still catching.',
-    lastLoss && `🪦 Most recent loss: ${name(lastLoss)}${lastLoss.died_at ? ` (${lastLoss.died_at})` : ''}. RIP.`,
+    team.length ? `⚔️ squad: ${team.map(name).join(', ')}` : '⚔️ no squad yet, still catching',
+    lastLoss && `🕊️ rip ${name(lastLoss)}${lastLoss.died_at ? ` (${lastLoss.died_at})` : ''}, gone too soon`,
   ].filter((l) => l !== null && l !== undefined && l !== false).join('\n')
 
   async function copy() {

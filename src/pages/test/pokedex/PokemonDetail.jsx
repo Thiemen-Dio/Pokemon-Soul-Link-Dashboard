@@ -1,5 +1,5 @@
 // Test copy of the Pokédex detail card.
-// New here: evolution method under each stage, PokémonDB-style stat bars with a nature preview,
+// New here: evolution method under each stage, PokémonDB-style coloured stat bars,
 // one generation choice for matchups + level-up moves, and a level-up move list under the matchups.
 // gen: open at this generation (the run's game, when opened from a run).
 import { useEffect, useMemo, useState } from 'react'
@@ -19,7 +19,6 @@ import {
 import { getGames, getLearnset, getMoves } from '../../../api/pokeapiGraphql.js'
 import { gameLabel } from '../../../api/games.js'
 import TypeLink from '../../../components/TypeLink.jsx'
-import { NATURES } from '../items.js'
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX']
 const LATEST_GEN = 9
@@ -38,26 +37,17 @@ function TypeBadges({ types, onNavigate }) {
   return <div className="types">{types.map((t) => <TypeLink key={t} type={t} onClick={onNavigate} />)}</div>
 }
 
+// Coloured bars like the run cards; natures only on the run cards.
 function Stats({ stats }) {
-  const [nature, setNature] = useState('')
-  const [up, down] = NATURES[nature] ?? []
-  const value = (s) => Math.round(s.value * (s.name === up ? 1.1 : s.name === down ? 0.9 : 1))
+  const value = (s) => s.value
   return (
     <>
-      <div className="section-head">
-        <h4>Base stats</h4>
-        <select value={nature} onChange={(e) => setNature(e.target.value)} aria-label="Preview a nature">
-          <option value="">No nature</option>
-          {Object.entries(NATURES).map(([n, [u, d]]) => (
-            <option key={n} value={n}>{displayName(n)}{u ? ` (+${STAT_LABELS[u]} −${STAT_LABELS[d]})` : ' (neutral)'}</option>
-          ))}
-        </select>
-      </div>
+      <h4>Base stats</h4>
       <table className="stats dex-stats">
         <tbody>
           {stats.map((s) => (
-            <tr key={s.name} className={s.name === up ? 'nat-up' : s.name === down ? 'nat-down' : ''}>
-              <th>{s.name === up ? '+' : s.name === down ? '−' : ''}{STAT_LABELS[s.name] ?? s.name}</th>
+            <tr key={s.name}>
+              <th>{STAT_LABELS[s.name] ?? s.name}</th>
               <td className="stat-value">{value(s)}</td>
               <td className="stat-bar"><span style={{ width: `${Math.min(100, (value(s) / 255) * 100)}%`, background: valueColor(value(s)) }} /></td>
             </tr>
