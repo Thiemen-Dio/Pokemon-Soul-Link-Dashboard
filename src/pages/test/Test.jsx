@@ -1,8 +1,11 @@
 // Test playground: try new ideas here before they go to prod (src/pages/prod).
 // Same database as prod: anything that saves here (a card's moves, item, evolving) changes the real runs.
-// Now on the bench: the PC box (PcBox.jsx) with its Pokémon card (MonCard.jsx).
+// Each project is its own tab and is released to prod on its own:
+//   PC box (PcBox.jsx + MonCard.jsx) · Pokédex (pokedex/) · Run page (run/).
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { NavLink, Navigate, useParams } from 'react-router-dom'
+import PokedexProject from './pokedex/PokemonTab.jsx'
+import { TestRunPage } from './run/MyRuns.jsx'
 import { chartForGeneration, getTypeData } from '../../api/pokeapi.js'
 import { getTypeRoster } from '../../api/pokeapiGraphql.js'
 import { getEncounters, getRuns, saveEncounter } from '../../api/soullink.js'
@@ -11,7 +14,34 @@ import { areaRows, teamClash } from '../../soullink/rules.js'
 import PcBox from './PcBox.jsx'
 import './test.css'
 
+const PROJECTS = [
+  { id: 'pc', label: 'PC box' },
+  { id: 'pokedex', label: 'Pokédex' },
+  { id: 'run', label: 'Run page' },
+]
+
+/** /test/:project — one tab per test project. */
 export default function Test() {
+  const { project = 'pc' } = useParams()
+  if (!PROJECTS.some((p) => p.id === project)) return <Navigate to="/test" replace />
+  return (
+    <>
+      <nav className="tabs test-projects" aria-label="Test projects">
+        {PROJECTS.map((p) => <NavLink key={p.id} to={`/test/${p.id}`} className={p.id === project ? 'active' : undefined}>{p.label}</NavLink>)}
+      </nav>
+      {project === 'pc' && <PcBoxProject />}
+      {project === 'pokedex' && (
+        <section className="test-dex">
+          <div className="page-head"><h2>Test · Pokédex</h2></div>
+          <PokedexProject />
+        </section>
+      )}
+      {project === 'run' && <TestRunPage />}
+    </>
+  )
+}
+
+function PcBoxProject() {
   const [runs, setRuns] = useState(null)
   const [runId, setRunId] = useState(null)
   const [encounters, setEncounters] = useState(null)
@@ -80,7 +110,3 @@ export default function Test() {
   )
 }
 
-/** Old /test/run/... links go back to the Test page. */
-export function TestRun() {
-  return <Navigate to="/test" replace />
-}

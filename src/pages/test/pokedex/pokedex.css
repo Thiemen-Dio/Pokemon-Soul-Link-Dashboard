@@ -1,0 +1,96 @@
+/* Test Pokédex project. Only loaded on /test/pokedex. */
+
+.test-projects { width: fit-content; margin: 0 auto 1.5rem; }
+
+/* ---- chip pickers ---- */
+.dex-filters { display: grid; gap: 1rem; margin-bottom: 1rem; }
+.chip-picker {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr auto;
+  align-items: start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.chip-title { padding-top: 0.45rem; font-weight: 600; font-size: 0.9rem; }
+.chip-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.multi-switch { display: flex; align-items: center; gap: 0.4rem; padding-top: 0.4rem; color: var(--muted); font-size: 0.85rem; white-space: nowrap; cursor: pointer; }
+@media (max-width: 720px) {
+  .chip-picker { grid-template-columns: 1fr auto; }
+  .chip-grid { grid-column: 1 / -1; grid-row: 2; }
+}
+
+.chip {
+  --chip: #5a6372;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.2rem;
+  padding: 0.25rem 0.7rem;
+  border: 1.5px solid color-mix(in srgb, var(--chip) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--chip) 10%, var(--surface));
+  color: color-mix(in srgb, var(--chip) 75%, var(--text));
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation; /* no double-tap zoom on phones, so double-tap = primary */
+  user-select: none;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+}
+.chip:hover { background: color-mix(in srgb, var(--chip) 20%, var(--surface)); }
+.chip[aria-pressed='true'] { background: var(--chip); border-color: var(--chip); color: #fff; }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip.all { --chip: var(--text); }
+.chip.all[aria-pressed='true'] { color: var(--surface); }
+
+/* Generation chips: starters as crisp sprites, name + region next to them. */
+.gen-chip { padding: 0.1rem 0.75rem 0.1rem 0.2rem; border-radius: 12px; }
+.gen-sprites { display: flex; }
+.gen-sprites img { width: 34px; height: 34px; margin: -4px -7px -4px 0; image-rendering: pixelated; object-fit: contain; }
+.gen-sprites img:last-child { margin-right: 0; }
+.gen-text { display: flex; flex-direction: column; line-height: 1.1; }
+.gen-text small { font-weight: 500; font-size: 0.7rem; opacity: 0.85; }
+
+/* Type chips: symbol + name. The primary (double-tapped) gets a double ring and a "1st" tag. */
+.chip-icon { width: 1.05rem; height: 1.05rem; flex-shrink: 0; }
+.type-chip.primary { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--chip); }
+.primary-tag {
+  margin-left: 0.1rem;
+  padding: 0 0.3rem;
+  border-radius: 5px;
+  background: rgb(255 255 255 / 0.9);
+  color: var(--chip);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+/* ---- detail card: grows with its content; the page behind scrolls instead ---- */
+.test-dex-overlay { overflow-y: auto; place-items: start center; }
+.test-dex-overlay .detail { max-height: none; overflow: visible; margin: 2rem 0; }
+.test-dex-overlay .section-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+
+.dex-stats tr.nat-up th { color: #e03131; font-weight: 700; }
+.dex-stats tr.nat-down th { color: #1c7ed6; font-weight: 700; }
+.dex-stats .stat-bar span { height: 8px; }
+
+/* Evolution lane: stages side by side, arrows in between, everything centred on one line. */
+.evo-lane { list-style: none; padding: 0; margin: 0.5rem 0 0; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0; }
+.evo-lane > li { display: flex; align-items: center; }
+.evo-arrow { padding: 0 0.45rem; color: var(--muted); font-size: 1.2rem; }
+.evo-stage { display: grid; grid-template-columns: repeat(var(--cols, 1), auto); gap: 0.4rem; }
+.evo-lane .evo { width: 7.5rem; padding: 0.35rem 0.4rem 0.55rem; gap: 0.1rem; }
+.evo-lane .evo img { image-rendering: pixelated; }
+.evo-name { font-weight: 600; font-size: 0.85rem; }
+.evo-how { color: var(--muted); font-size: 0.72rem; line-height: 1.25; text-align: center; }
+
+/* Level-up moves */
+.game-tabs { width: fit-content; max-width: 100%; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.levelup { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.levelup th { text-align: left; color: var(--muted); font-weight: 500; font-size: 0.75rem; padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--border); }
+.levelup td { padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--border); }
+.levelup .num { text-align: right; white-space: nowrap; }
+.move-name { padding-left: 0.45rem; border-left: 4px solid var(--type-color); font-weight: 600; white-space: nowrap; }

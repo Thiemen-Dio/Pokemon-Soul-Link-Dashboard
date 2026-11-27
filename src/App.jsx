@@ -31,7 +31,6 @@ function Layout() {
 
 // Test playground (src/pages/test): only downloaded when opened, so prod never loads its code or styles.
 const Test = lazy(() => import('./pages/test/Test.jsx'))
-const TestRun = lazy(() => import('./pages/test/Test.jsx').then((m) => ({ default: m.TestRun })))
 const loading = <p className="status">Loading…</p>
 
 // "Dashboard" was renamed to "My runs": old links keep working.
@@ -62,7 +61,7 @@ export default function App() {
             <Route path="moves" element={<MovesTab />} />
           </Route>
           <Route path="/test" element={<Suspense fallback={loading}><Test /></Suspense>} />
-          <Route path="/test/run/:runName" element={<Suspense fallback={loading}><TestRun /></Suspense>} />
+          <Route path="/test/:project" element={<Suspense fallback={loading}><Test /></Suspense>} />
         </Route>
       </Routes>
     </BrowserRouter>

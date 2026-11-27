@@ -324,3 +324,30 @@ export async function getAbilities() {
 export async function getMoves() {
   return (await query('moves', MOVES_QUERY)).move.map(normalizeMove)
 }
+
+// Before Gen 4 a move's type decided physical or special.
+const SPECIAL_TYPES = new Set(['fire', 'water', 'grass', 'electric', 'psychic', 'ice', 'dragon', 'dark'])
+
+/**
+ * Every move as it was in one generation (Leech Life: 20 power before Gen 7, Bite: Normal before Gen 2).
+ * PokeAPI's move changes hold the values in effect *before* their version group's generation.
+ */
+export async function getMovesInGeneration(gen) {
+  const [moves, data] = await Promise.all([
+    getMoves(),
+    query('move-changes', `{ movechange(order_by: {version_group_id: asc}) { move_id power accuracy pp type { name } versiongroup { generation_id } } }`),
+  ])
+  const later = groupBy(data.movechange.filter((c) => c.versiongroup.generation_id > gen), (c) => c.move_id)
+  return moves.filter((m) => m.generation <= gen).map((m) => {
+    const out = { ...m }
+    // The earliest change after this generation says what the values still were.
+    for (const field of ['power', 'accuracy', 'pp']) {
+      const c = later[m.id]?.find((x) => x[field] !== null)
+      if (c) out[field] = c[field]
+    }
+    const t = later[m.id]?.find((x) => x.type)
+    if (t) out.type = t.type.name
+    if (gen < 4 && out.category !== 'status') out.category = SPECIAL_TYPES.has(out.type) ? 'special' : 'physical'
+    return out
+  })
+}

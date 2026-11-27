@@ -158,6 +158,7 @@ export function evolutionTreeFor(chain, region, info) {
         req: d.required_pokemon_form?.name ?? null,
         evo: d.evolved_pokemon_form?.name ?? null,
         region: d.region?.name ?? null,
+        raw: d,
       }))
       // An ordinary evolution: no special form needed or produced, not tied to a region.
       const ordinary = (d) =>
@@ -184,11 +185,48 @@ export function evolutionTreeFor(chain, region, info) {
           ? kid.default
           : kid.byRegion[regionOf(evo)?.key] ?? kid.default
         : (region && kid.byRegion[region]) || kid.default
-      children.push(build(child, childForm))
+      children.push({ ...build(child, childForm), how: evolutionHow(applies.map((d) => d.raw)) })
     }
     return { form, children }
   }
   return build(chain, (region && root.byRegion[region]) || root.default)
+}
+
+const words = (slug) => slug.replace(/-/g, ' ')
+
+/** One PokeAPI evolution_details entry in plain words: "Lv 16", "Fire Stone", "Trade holding Metal Coat". */
+function detailHow(d) {
+  const trigger = d.trigger?.name
+  const bits = []
+  if (trigger === 'trade') bits.push(d.held_item ? `Trade holding ${displayName(d.held_item.name)}` : d.trade_species ? `Trade for ${displayName(d.trade_species.name)}` : 'Trade')
+  else if (d.item) bits.push(displayName(d.item.name))
+  else if (d.min_level) bits.push(`Lv ${d.min_level}`)
+  else if (trigger === 'level-up') bits.push('Level up')
+  else if (trigger) bits.push(displayName(trigger))
+  if (trigger !== 'trade' && d.held_item) bits.push(`holding ${displayName(d.held_item.name)}`)
+  if (d.min_happiness) bits.push('high friendship')
+  if (d.min_affection) bits.push('high affection')
+  if (d.min_beauty) bits.push('high beauty')
+  if (d.time_of_day) bits.push(`at ${d.time_of_day}`)
+  if (d.known_move) bits.push(`knowing ${displayName(d.known_move.name)}`)
+  if (d.known_move_type) bits.push(`knowing a ${words(d.known_move_type.name)} move`)
+  if (d.location) bits.push(`at ${displayName(d.location.name)}`)
+  if (d.gender === 1) bits.push('female')
+  if (d.gender === 2) bits.push('male')
+  if (d.needs_overworld_rain) bits.push('in rain')
+  if (d.turn_upside_down) bits.push('console upside down')
+  if (d.party_species) bits.push(`with ${displayName(d.party_species.name)} in party`)
+  if (d.party_type) bits.push(`with a ${words(d.party_type.name)} type in party`)
+  if (d.relative_physical_stats === 1) bits.push('Atk > Def')
+  if (d.relative_physical_stats === -1) bits.push('Atk < Def')
+  if (d.relative_physical_stats === 0) bits.push('Atk = Def')
+  return bits.join(', ')
+}
+
+/** All ways an evolution can happen, without repeats (games differ, e.g. a stone or a place). */
+export function evolutionHow(details) {
+  const ways = [...new Set(details.map(detailHow).filter(Boolean))]
+  return ways.length > 2 ? `${ways.slice(0, 2).join(' / ')} / …` : ways.join(' / ') || null
 }
 
 function treeHas(tree, name) {
@@ -200,7 +238,7 @@ export function treeStages(tree) {
   const stages = []
   let level = [tree]
   while (level.length) {
-    stages.push(level.map((n) => ({ id: n.form.id, name: n.form.name, label: formName(n.form.name) })))
+    stages.push(level.map((n) => ({ id: n.form.id, name: n.form.name, label: formName(n.form.name), how: n.how ?? null })))
     level = level.flatMap((n) => n.children)
   }
   return stages
